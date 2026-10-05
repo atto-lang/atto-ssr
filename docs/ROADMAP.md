@@ -13,7 +13,7 @@
 
 ## Phase 1 — safe dynamic data
 
-Blocked on `oreslang-source.java#246`.
+Blocked on `oreslang-source.java#246` for escaping and `oreslang-source.java#248` for an unforgeable safe-markup representation.
 
 - escaped `markup.text(string)`
 - escaped `html.attr(name, value)`
