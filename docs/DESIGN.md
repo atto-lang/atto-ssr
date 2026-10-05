@@ -49,7 +49,9 @@ The target contract is Maud-like:
 
 Current Oreslang cannot implement rule 1 or 2 correctly in native source because strings are not traversable and expose no native transform primitive. That language gap is tracked in `oreslang-source.java#246`.
 
-Until #246 lands, this repo intentionally exposes only names containing `trusted` or `trusted_raw` for string-to-markup/string-to-attribute conversion. This is less convenient but does not disguise an injection risk.
+A second gap is representation hiding: the current record-shaped `Markup` value is structurally forgeable. An opaque/newtype/private-representation facility is tracked in `oreslang-source.java#248`.
+
+Until #246 and #248 land, this repo intentionally exposes only names containing `trusted` or `trusted_raw` for string-to-markup/string-to-attribute/tag conversion. This is less convenient but does not disguise an injection risk.
 
 ## Why not a template DSL first?
 
