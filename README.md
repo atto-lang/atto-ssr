@@ -56,7 +56,7 @@ The desired API is escaped-by-default, Maud-style.
 
 Current Oreslang cannot yet implement a correct arbitrary-string HTML escaper in native source because strings are not traversable/indexable and have no native transform/builder primitive.
 
-That gap is tracked at **oreslang-source.java#246**.
+The escaping primitive gap is tracked at **oreslang-source.java#246**. A second issue, **#248**, tracks the opaque/newtype boundary needed to make `Markup` unforgeable rather than merely a record convention.
 
 Until it lands:
 
@@ -114,4 +114,4 @@ See:
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 
-The next critical step is safe dynamic string escaping via #246; after that, add native UTF-8 builder/streaming output and a direct adapter for `oreslang-http-routing`.
+The next critical steps are safe dynamic string escaping via #246 and an opaque `Markup` representation via #248; after that, add native UTF-8 builder/streaming output and a direct adapter for `oreslang-http-routing`.
