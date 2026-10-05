@@ -1,0 +1,139 @@
+import module markup from './markup';
+import type Markup from './markup';
+
+// Serialized HTML attributes.
+//
+// Attribute values are currently trusted inputs. The future attr()/text() APIs
+// must escape arbitrary dynamic strings by default once #246 lands.
+type Attrs = {html: string};
+
+define module html as
+
+  pub fnc attrs_empty(): Attrs {
+    return obj{html: ""};
+  }
+
+  pub fnc attr_trusted(string name, string value): Attrs {
+    return obj{html: " " + name + "="" + value + """};
+  }
+
+  pub fnc bool_attr(string name, bool enabled): Attrs {
+    if enabled then
+      return obj{html: " " + name};
+    fi
+
+    return attrs_empty();
+  }
+
+  pub fnc attrs_join(Array<Attrs> attrs): Attrs {
+    let string rendered = "";
+
+    for (val attr of attrs) {
+      rendered = rendered + attr.html;
+    }
+
+    return obj{html: rendered};
+  }
+
+  pub fnc element(string tag, Attrs attrs, Markup children): Markup {
+    return markup.trusted_raw(
+      "<" + tag + attrs.html + ">" +
+      children.html +
+      "</" + tag + ">"
+    );
+  }
+
+  pub fnc void_element(string tag, Attrs attrs): Markup {
+    return markup.trusted_raw("<" + tag + attrs.html + ">");
+  }
+
+  pub fnc fragment(Array<Markup> children): Markup {
+    return markup.join(children);
+  }
+
+  pub fnc document(Markup head, Markup body): Markup {
+    val content = element(
+      "html",
+      attrs_empty(),
+      markup.join([
+        element("head", attrs_empty(), head),
+        element("body", attrs_empty(), body)
+      ])
+    );
+
+    return markup.trusted_raw("<!DOCTYPE html>" + content.html);
+  }
+
+  pub fnc div(Attrs attrs, Markup children): Markup {
+    return element("div", attrs, children);
+  }
+
+  pub fnc span(Attrs attrs, Markup children): Markup {
+    return element("span", attrs, children);
+  }
+
+  pub fnc p(Attrs attrs, Markup children): Markup {
+    return element("p", attrs, children);
+  }
+
+  pub fnc h1(Attrs attrs, Markup children): Markup {
+    return element("h1", attrs, children);
+  }
+
+  pub fnc main(Attrs attrs, Markup children): Markup {
+    return element("main", attrs, children);
+  }
+
+  pub fnc section(Attrs attrs, Markup children): Markup {
+    return element("section", attrs, children);
+  }
+
+  pub fnc nav(Attrs attrs, Markup children): Markup {
+    return element("nav", attrs, children);
+  }
+
+  pub fnc form(Attrs attrs, Markup children): Markup {
+    return element("form", attrs, children);
+  }
+
+  pub fnc button(Attrs attrs, Markup children): Markup {
+    return element("button", attrs, children);
+  }
+
+  pub fnc a(Attrs attrs, Markup children): Markup {
+    return element("a", attrs, children);
+  }
+
+  pub fnc ul(Attrs attrs, Markup children): Markup {
+    return element("ul", attrs, children);
+  }
+
+  pub fnc li(Attrs attrs, Markup children): Markup {
+    return element("li", attrs, children);
+  }
+
+  pub fnc title(Attrs attrs, Markup children): Markup {
+    return element("title", attrs, children);
+  }
+
+  pub fnc style(Attrs attrs, Markup children): Markup {
+    return element("style", attrs, children);
+  }
+
+  pub fnc script(Attrs attrs, Markup children): Markup {
+    return element("script", attrs, children);
+  }
+
+  pub fnc input(Attrs attrs): Markup {
+    return void_element("input", attrs);
+  }
+
+  pub fnc meta(Attrs attrs): Markup {
+    return void_element("meta", attrs);
+  }
+
+  pub fnc link(Attrs attrs): Markup {
+    return void_element("link", attrs);
+  }
+
+end
