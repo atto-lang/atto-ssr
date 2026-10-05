@@ -3,8 +3,8 @@ import type Markup from './markup';
 
 // Serialized HTML attributes.
 //
-// Attribute values are currently trusted inputs. The future attr()/text() APIs
-// must escape arbitrary dynamic strings by default once #246 lands.
+// Attribute names and values are trusted inputs until #246 provides the native
+// string primitives required for escaped-by-default dynamic attributes.
 type Attrs = {html: string};
 
 define module html as
@@ -13,16 +13,38 @@ define module html as
     return obj{html: ""};
   }
 
+  // Both name and value are trusted. Prefer fixed-name convenience helpers
+  // where possible so callers do not dynamically construct attribute names.
   pub fnc attr_trusted(string name, string value): Attrs {
-    return obj{html: " " + name + "="" + value + """};
+    return obj{html: " " + name + "=\"" + value + "\""};
   }
 
-  pub fnc bool_attr(string name, bool enabled): Attrs {
+  pub fnc bool_attr_trusted(string name, bool enabled): Attrs {
     if enabled then
       return obj{html: " " + name};
     fi
 
     return attrs_empty();
+  }
+
+  pub fnc id_trusted(string value): Attrs {
+    return attr_trusted("id", value);
+  }
+
+  pub fnc class_trusted(string value): Attrs {
+    return attr_trusted("class", value);
+  }
+
+  pub fnc href_trusted(string value): Attrs {
+    return attr_trusted("href", value);
+  }
+
+  pub fnc action_trusted(string value): Attrs {
+    return attr_trusted("action", value);
+  }
+
+  pub fnc method_trusted(string value): Attrs {
+    return attr_trusted("method", value);
   }
 
   pub fnc attrs_join(Array<Attrs> attrs): Attrs {
@@ -35,7 +57,9 @@ define module html as
     return obj{html: rendered};
   }
 
-  pub fnc element(string tag, Attrs attrs, Markup children): Markup {
+  // The tag name is trusted. This is intentionally not called element()
+  // until Oreslang can validate/escape dynamic tag names safely.
+  pub fnc element_trusted(string tag, Attrs attrs, Markup children): Markup {
     return markup.trusted_raw(
       "<" + tag + attrs.html + ">" +
       children.html +
@@ -43,7 +67,7 @@ define module html as
     );
   }
 
-  pub fnc void_element(string tag, Attrs attrs): Markup {
+  pub fnc void_element_trusted(string tag, Attrs attrs): Markup {
     return markup.trusted_raw("<" + tag + attrs.html + ">");
   }
 
@@ -52,88 +76,104 @@ define module html as
   }
 
   pub fnc document(Markup head, Markup body): Markup {
-    val content = element(
+    val content = element_trusted(
       "html",
       attrs_empty(),
       markup.join([
-        element("head", attrs_empty(), head),
-        element("body", attrs_empty(), body)
+        element_trusted("head", attrs_empty(), head),
+        element_trusted("body", attrs_empty(), body)
       ])
     );
 
-    return markup.trusted_raw("<!DOCTYPE html>" + content.html);
+    return markup.trusted_raw("<!doctype html>" + content.html);
   }
 
   pub fnc div(Attrs attrs, Markup children): Markup {
-    return element("div", attrs, children);
+    return element_trusted("div", attrs, children);
   }
 
   pub fnc span(Attrs attrs, Markup children): Markup {
-    return element("span", attrs, children);
+    return element_trusted("span", attrs, children);
   }
 
   pub fnc p(Attrs attrs, Markup children): Markup {
-    return element("p", attrs, children);
+    return element_trusted("p", attrs, children);
   }
 
   pub fnc h1(Attrs attrs, Markup children): Markup {
-    return element("h1", attrs, children);
+    return element_trusted("h1", attrs, children);
+  }
+
+  pub fnc h2(Attrs attrs, Markup children): Markup {
+    return element_trusted("h2", attrs, children);
   }
 
   pub fnc main(Attrs attrs, Markup children): Markup {
-    return element("main", attrs, children);
+    return element_trusted("main", attrs, children);
   }
 
   pub fnc section(Attrs attrs, Markup children): Markup {
-    return element("section", attrs, children);
+    return element_trusted("section", attrs, children);
   }
 
   pub fnc nav(Attrs attrs, Markup children): Markup {
-    return element("nav", attrs, children);
+    return element_trusted("nav", attrs, children);
   }
 
   pub fnc form(Attrs attrs, Markup children): Markup {
-    return element("form", attrs, children);
+    return element_trusted("form", attrs, children);
   }
 
   pub fnc button(Attrs attrs, Markup children): Markup {
-    return element("button", attrs, children);
+    return element_trusted("button", attrs, children);
   }
 
   pub fnc a(Attrs attrs, Markup children): Markup {
-    return element("a", attrs, children);
+    return element_trusted("a", attrs, children);
   }
 
   pub fnc ul(Attrs attrs, Markup children): Markup {
-    return element("ul", attrs, children);
+    return element_trusted("ul", attrs, children);
   }
 
   pub fnc li(Attrs attrs, Markup children): Markup {
-    return element("li", attrs, children);
+    return element_trusted("li", attrs, children);
   }
 
   pub fnc title(Attrs attrs, Markup children): Markup {
-    return element("title", attrs, children);
+    return element_trusted("title", attrs, children);
   }
 
-  pub fnc style(Attrs attrs, Markup children): Markup {
-    return element("style", attrs, children);
+  // CSS is a distinct executable-ish context. Callers must pass only trusted
+  // CSS text until a structural Stylesheet-only helper is introduced.
+  pub fnc style_trusted(Attrs attrs, Markup css_text): Markup {
+    return element_trusted("style", attrs, css_text);
   }
 
-  pub fnc script(Attrs attrs, Markup children): Markup {
-    return element("script", attrs, children);
+  // JavaScript has different escaping rules from HTML. Keep the helper
+  // explicitly trusted; do not present script content as ordinary safe Markup.
+  pub fnc script_trusted(Attrs attrs, Markup script_text): Markup {
+    return element_trusted("script", attrs, script_text);
   }
 
   pub fnc input(Attrs attrs): Markup {
-    return void_element("input", attrs);
+    return void_element_trusted("input", attrs);
   }
 
   pub fnc meta(Attrs attrs): Markup {
-    return void_element("meta", attrs);
+    return void_element_trusted("meta", attrs);
   }
 
   pub fnc link(Attrs attrs): Markup {
-    return void_element("link", attrs);
+    return void_element_trusted("link", attrs);
+  }
+
+  pub fnc br(): Markup {
+    return void_element_trusted("br", attrs_empty());
+  }
+
+  pub fnc hr(Attrs attrs): Markup {
+    return void_element_trusted("hr", attrs);
   }
 
 end
