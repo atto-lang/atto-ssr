@@ -7,7 +7,7 @@ define module greeting_component as
 
   pub fnc fragment(): {status: int, content_type: string, body: string} {
     val card = html.div(
-      html.attr_trusted("id", "greeting"),
+      html.id_trusted("greeting"),
       html.p(
         html.attrs_empty(),
         markup.trusted_raw("Hello from an Oreslang-rendered HTMX fragment.")
@@ -32,7 +32,7 @@ pub routine main(): void {
       markup.trusted_raw("Load server fragment")
     ),
     html.div(
-      html.attr_trusted("id", "result"),
+      html.id_trusted("result"),
       markup.trusted_raw("Waiting for the server...")
     )
   ]);
