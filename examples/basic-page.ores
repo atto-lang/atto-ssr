@@ -30,14 +30,14 @@ pub routine main(): void {
       html.attrs_empty(),
       markup.trusted_raw("Oreslang SSR")
     ),
-    html.style(
+    html.style_trusted(
       html.attrs_empty(),
       markup.trusted_raw(css.render(sheet))
     )
   ]);
 
   val body = html.main(
-    html.attr_trusted("class", "card"),
+    html.class_trusted("card"),
     markup.join([
       html.h1(
         html.attrs_empty(),
