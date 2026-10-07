@@ -33,14 +33,14 @@ import module response from './src/response';
 pub fnc counter_fragment(): {status: int, content_type: string, body: string} {
   val body = html.div(
     html.attrs_join([
-      html.attr_trusted("id", "counter"),
+      html.id("counter"),
       htmx.post_trusted("/counter/increment"),
       htmx.target_trusted("#counter"),
       htmx.outer_html()
     ]),
     html.button(
       html.attrs_empty(),
-      markup.trusted_raw("Increment")
+      markup.text("Increment")
     )
   );
 
@@ -50,25 +50,30 @@ pub fnc counter_fragment(): {status: int, content_type: string, body: string} {
 
 That is server-side HTML generation only. HTMX performs the browser request/swap; Oreslang does not need to ship a browser runtime.
 
-## Security: dynamic escaping is intentionally gated
+## Escaped dynamic data
 
-The desired API is escaped-by-default, Maud-style.
+`markup.text(value)` escapes `& < > " '` and returns a nominal `Markup` value.
+`html.attr(name, value)` returns `Result<Attrs, string>`: it escapes the value
+and accepts only an explicit allowlist of inert attribute names. `html.id` and
+`html.class_name` are fixed-name escaped helpers.
 
-Current Oreslang cannot yet implement a correct arbitrary-string HTML escaper in native source because strings are not traversable/indexable and have no native transform/builder primitive.
+```ores
+val card = html.div(
+  html.attr("title", user_title).unwrap(),
+  markup.text(user_message)
+);
+```
 
-The escaping primitive gap is tracked at **oreslang-source.java#246**. A second issue, **#248**, tracks the opaque/newtype boundary needed to make `Markup` unforgeable rather than merely a record convention.
+`Markup`, `Attrs` and `Stylesheet` have private constructors and immutable private storage.
+Ordinary records cannot impersonate them. Trusted conversions remain explicit:
+`markup.trusted_raw`, `html.attr_trusted`, and the `*_trusted` CSS/HTMX helpers.
+This changes the former record aliases to nominal classes; callers importing
+these names must use `import class`, and must render through the public API.
 
-Until it lands:
-
-- string-to-HTML conversion is explicitly `markup.trusted_raw(...)`;
-- HTML attributes are explicitly `html.attr_trusted(...)`;
-- HTMX values use `*_trusted(...)`;
-- CSS values/selectors use explicitly trusted helpers;
-- these functions must not receive untrusted/user-controlled data.
-
-We intentionally do **not** provide a fake `escape()` or misleading safe-looking `text(string)` API.
-
-See [docs/SECURITY.md](docs/SECURITY.md).
+HTML escaping is context-specific. `html.attr` rejects URL, event, CSS,
+`srcdoc`, HTMX and unknown attributes. Do not treat escaping as URL validation,
+JavaScript/CSS sanitization, or a policy for application code that reinterprets
+an attribute value. See [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Design principles
 
@@ -94,17 +99,18 @@ or:
 bash scripts/check.sh
 ```
 
-### Compiler compatibility note
+### Compiler compatibility and tests
 
-These sources follow the current intended Oreslang syntax, including:
+`compiler.lock` identifies the compiler commit; `compiler-tree.txt` identifies
+its exact source contents. CI checks out an identical compiler snapshot from
+this private repository and verifies its tree before building. No cross-repo
+secret is required. `bash scripts/setup.sh` builds the verified checkout in
+`.work/compiler`; then `bash scripts/test.sh` uses the generated launcher.
 
-```ores
-define module markup as
-  ...
-end
-```
-
-At the time this branch was created, the compiler's default `main` still had older module parsing without mandatory `as`. This repo follows the newer language contract rather than writing new library code in stale syntax.
+The suite checks both examples, compares rendering and adversarial escaping
+fixtures byte for byte, and requires unsafe constructor/field/struct/subclass
+programs to fail with the expected diagnostic. The runtime storage primitive
+is literal string replacement; all HTML policy stays in Oreslang.
 
 ## Roadmap
 
@@ -114,7 +120,7 @@ See:
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 
-The next critical steps are safe dynamic string escaping via #246 and an opaque `Markup` representation via #248; after that, add native UTF-8 builder/streaming output and a direct adapter for `oreslang-http-routing`.
+Next: native UTF-8 builder/streaming output, URL-aware helpers, and a direct adapter for `oreslang-http-routing`. The generic compiler issues #246/#248 still include broader performance/backend and type-system work; this library proves its own private-class boundary with rejection tests.
 
 ## Compiler PR checkpoint (2026-10-06)
 

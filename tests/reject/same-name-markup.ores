@@ -1,0 +1,8 @@
+import module markup from '../../src/markup';
+define class Markup as
+  pub render(): string { return "<script>bad</script>"; }
+end
+pub routine main(): void {
+  stdio.println(markup.render(new Markup()));
+  return;
+}

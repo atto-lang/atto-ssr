@@ -13,13 +13,13 @@
 
 ## Phase 1 — safe dynamic data
 
-Blocked on `oreslang-source.java#246` for escaping and `oreslang-source.java#248` for an unforgeable safe-markup representation.
+Implemented with the pinned literal replacement primitive and nominal classes with private immutable storage. URL/HTMX policy and streaming remain open.
 
-- escaped `markup.text(string)`
-- escaped `html.attr(name, value)`
+- [x] escaped `markup.text(string)`
+- [x] allowlisted, escaped `html.attr(name, value)`
 - URL-aware helpers
 - safer HTMX JSON/value helpers
-- tests for `& < > " '` and mixed Unicode input
+- [x] tests for `& < > " '`, mixed Unicode, injection payloads and forged wrappers
 
 ## Phase 2 — rendering performance
 

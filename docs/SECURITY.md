@@ -1,80 +1,75 @@
 # Security
 
-HTML rendering is a security boundary.
+## Escaped data boundaries
 
-## Current rule
+`markup.text(value)` escapes ampersands, angle brackets and both quote characters
+for HTML text context. Existing entities are treated as input data and encoded
+again; the implementation never decodes entities. Non-delimiter Unicode is
+preserved, including supplementary characters and combining sequences.
 
-Every API that converts an ordinary string directly into HTML, an HTML attribute, a tag name, or CSS is explicitly named `trusted*`.
+`html.attr(name, value)` escapes a double-quoted value and returns
+`Result<Attrs, string>`. Accepted names are exactly:
 
-Examples:
+`id`, `class`, `title`, `alt`, `value`, `placeholder`, `role`, `aria-label`,
+`aria-description`, `aria-describedby`, and `aria-labelledby`.
 
-- `markup.trusted_raw(...)`
-- `html.attr_trusted(...)`
-- `html.element_trusted(...)`
-- `css.declaration_trusted(...)`
-- `htmx.get_trusted(...)`
+Names are case-sensitive. Unknown names, empty names, whitespace, event
+handlers, URLs, `style`, `srcdoc`, and HTMX attributes are rejected. `html.id`
+and `html.class_name` provide fixed-name escaped helpers. Applications must
+still enforce their own policies for IDs, classes and data later consumed by
+JavaScript or another interpreter.
 
-These functions **must not receive untrusted/user-controlled strings**.
+This follows the context separation described in the
+[OWASP XSS prevention guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
+HTML encoding is not URL validation, HTML sanitization, JavaScript escaping,
+CSS escaping, or a policy for executable HTMX expressions.
 
-Oreslang currently lacks the native string traversal/transform primitive required to implement HTML escaping in Oreslang source. See `oreslang-source.java#246`.
+## Nominal wrappers
 
-## Provisional Markup representation
+`Markup`, `Attrs` and `Stylesheet` are public nominal classes with private constructors and
+immutable private string fields. Public rendering exposes an immutable string;
+it does not grant permission to modify the stored representation. Negative
+compiler/runtime tests reject external constructors, private field access, structural
+record impersonation, callable impostors, same-name foreign classes, and subclass construction.
 
-`Markup` is currently a record alias:
+Imported function signatures are not yet fully typed by the compiler. Rendering
+entry points therefore cast to the local nominal declaration before dispatching
+on caller-supplied values. The pinned compiler compares declaration identity
+and resolves inheritance in the object's defining unit; a same-name foreign
+class or interface cannot pass these guards. These runtime checks are required
+until imported-signature typing is complete.
 
-```ores
-type Markup = {html: string};
-```
+This intentionally replaces the former structural aliases. Import them with
+`import class`, compose through the module APIs, and render through the public
+methods. Callers that fabricated or read `{html: string}` must migrate.
 
-That is useful for proving composition, but it is not yet an unforgeable security type because another source unit can construct the same record shape directly.
+## Explicit trust
 
-The required opaque/newtype/private-representation capability is tracked in `oreslang-source.java#248`.
+These APIs bypass data encoding and require trusted, context-correct input:
 
-Therefore the present security model is deliberately conservative:
+- `markup.trusted_raw` and `Markup.trusted_raw`
+- `html.attr_trusted`, `Attrs.trusted_raw`, and `*_trusted` attribute helpers
+- `html.element_trusted` and `html.void_element_trusted`
+- `css.trusted_raw`, `Stylesheet.trusted_raw`, and CSS/HTMX `*_trusted` helpers
+- `html.script_trusted`
 
-- `trusted*` names are capability warnings to humans and static audits;
-- the type checker does **not yet** prove that all `Markup` values passed through the system were escaped or explicitly trusted;
-- production use with untrusted dynamic data should wait for #246 and #248.
+Do not pass untrusted data to them. In particular, HTML text must not be reused
+as script or style source. Generic tag names remain trusted because tag choice
+changes parsing context. URL helpers and safe HTMX JSON/expression handling
+remain separate work.
 
-## Required post-#246/#248 API
+## Implementation and validation
 
-Once both language capabilities exist:
+HTML policy is native Oreslang source. The compiler supplies a literal string
+replacement storage primitive; it performs no regex or entity interpretation
+and needs no Java interop permission. The SSR repository forbids Java source,
+Java islands and host imports in source/examples/tests.
 
-- `markup.text(dynamic_text)` escapes HTML text context and returns opaque `Markup`;
-- `html.attr(name, dynamic_value)` escapes attribute context;
-- trusted escape hatches retain explicit names such as `trusted_raw`;
-- callers cannot directly forge a `Markup` from an arbitrary string;
-- convenience element helpers should prefer safe APIs;
-- examples should migrate away from trusted helpers except for literals/framework-owned constants.
+The pinned compiler is verified by exact Git tree before building. Tests compare
+existing rendering output and adversarial escaping output byte for byte, and
+require unsafe wrapper programs to fail with a matching diagnostic. The source
+audit remains a supplementary check, not a substitute for those runtime and
+compiler tests. Native-image and alternative backend proofs are separate work.
 
-## Contexts are distinct
-
-Do not reuse HTML escaping as a universal sanitizer.
-
-Separate policies are required for:
-
-- HTML text;
-- HTML quoted attributes;
-- tag and attribute names;
-- URLs;
-- inline CSS values/selectors;
-- script content;
-- JSON embedded in attributes such as `hx-vals`.
-
-The library should prefer structural APIs over trying to sanitize executable sublanguages.
-
-That is why generic tag-name operations are named `element_trusted` / `void_element_trusted`, and script/style helpers remain explicitly trusted.
-
-## No Java
-
-This repository must not use:
-
-- `java:` imports;
-- `java { ... }`;
-- `do java { ... }`;
-- Java template engines;
-- host reflection.
-
-Rendering semantics belong to Oreslang source. Low-level string/buffer storage primitives may come from the native-first runtime/stdlib boundary, but policy remains in Oreslang.
-
-`scripts/audit.sh` mechanically checks these repository-level invariants.
+Rendering is eager and allocates intermediate strings. Native UTF-8 builders,
+bounded/streamed response production and performance proofs remain pending.

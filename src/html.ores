@@ -1,28 +1,68 @@
 import module markup from './markup';
-import type Markup from './markup';
-import type Stylesheet from './css';
+import class Markup from './markup';
+import class Stylesheet from './css';
+import module css from './css';
 
 // Serialized HTML attributes.
 //
-// Attribute names and values are trusted inputs until #246 provides the native
-// string primitives required for escaped-by-default dynamic attributes.
-type Attrs = {html: string};
+// Private immutable storage prevents structural fabrication of attributes.
+pub define class Attrs as
+  private val string html;
+
+  private constructor(string value) {
+    self.html = value;
+  }
+
+  pub static fnc trusted_raw(string value): Attrs {
+    return new Attrs(value);
+  }
+
+  pub render(): string {
+    return self.html;
+  }
+end
 
 define module html as
 
-  pub fnc attrs_empty(): Attrs {
-    return obj{html: ""};
+  // Linked imports are not yet fully typed; validate the nominal wrapper at
+  // the runtime boundary before any method dispatch on caller-supplied data.
+  pub fnc attrs_render(Attrs value): string {
+    val checked = value as Attrs;
+    return checked.render();
   }
 
-  // Both name and value are trusted. Prefer fixed-name convenience helpers
-  // where possible so callers do not dynamically construct attribute names.
+  // Only inert, fixed attribute names are accepted. URL, event, CSS, srcdoc,
+  // HTMX and unknown contexts need separate policy and fail closed here.
+  pub fnc attr(string name, string value): Result<Attrs, string> {
+    if name == "id" || name == "class" || name == "title" || name == "alt"
+      || name == "value" || name == "placeholder" || name == "role"
+      || name == "aria-label" || name == "aria-description"
+      || name == "aria-describedby" || name == "aria-labelledby" then
+      return Ok(attr_trusted(name, markup.escape_html_data(value)));
+    fi
+    return Err("attribute requires a dedicated context policy or explicit trust");
+  }
+
+  pub fnc id(string value): Attrs {
+    return attr_trusted("id", markup.escape_html_data(value));
+  }
+
+  pub fnc class_name(string value): Attrs {
+    return attr_trusted("class", markup.escape_html_data(value));
+  }
+
+  pub fnc attrs_empty(): Attrs {
+    return Attrs.trusted_raw("");
+  }
+
+  // Both name and value are trusted. Use attr() for escaped inert values.
   pub fnc attr_trusted(string name, string value): Attrs {
-    return obj{html: " " + name + "=\"" + value + "\""};
+    return Attrs.trusted_raw(" " + name + "=\"" + value + "\"");
   }
 
   pub fnc bool_attr_trusted(string name, bool enabled): Attrs {
     if enabled then
-      return obj{html: " " + name};
+      return Attrs.trusted_raw(" " + name);
     fi
 
     return attrs_empty();
@@ -52,24 +92,25 @@ define module html as
     let string rendered = "";
 
     for (val attr of attrs) {
-      rendered = rendered + attr.html;
+      rendered = rendered + attrs_render(attr);
     }
 
-    return obj{html: rendered};
+    return Attrs.trusted_raw(rendered);
   }
 
   // The tag name is trusted. This is intentionally not called element()
   // until Oreslang can validate/escape dynamic tag names safely.
   pub fnc element_trusted(string tag, Attrs attrs, Markup children): Markup {
+    val string rendered_children = markup.render(children);
     return markup.trusted_raw(
-      "<" + tag + attrs.html + ">" +
-      children.html +
+      "<" + tag + attrs_render(attrs) + ">" +
+      rendered_children +
       "</" + tag + ">"
     );
   }
 
   pub fnc void_element_trusted(string tag, Attrs attrs): Markup {
-    return markup.trusted_raw("<" + tag + attrs.html + ">");
+    return markup.trusted_raw("<" + tag + attrs_render(attrs) + ">");
   }
 
   pub fnc fragment(Array<Markup> children): Markup {
@@ -86,7 +127,8 @@ define module html as
       ])
     );
 
-    return markup.trusted_raw("<!doctype html>" + content.html);
+    val string rendered_content = markup.render(content);
+    return markup.trusted_raw("<!doctype html>" + rendered_content);
   }
 
   pub fnc div(Attrs attrs, Markup children): Markup {
@@ -150,7 +192,7 @@ define module html as
     return element_trusted(
       "style",
       attrs,
-      markup.trusted_raw(sheet.css)
+      markup.trusted_raw(css.render(sheet))
     );
   }
 

@@ -1,0 +1,5 @@
+import class Markup from '../../src/markup';
+pub routine main(): void {
+  val forged = new Markup("<script>bad</script>");
+  return;
+}

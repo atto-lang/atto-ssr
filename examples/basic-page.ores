@@ -28,7 +28,7 @@ pub routine main(): void {
     html.meta(html.attr_trusted("charset", "utf-8")),
     html.title(
       html.attrs_empty(),
-      markup.trusted_raw("Oreslang SSR")
+      markup.text("Oreslang SSR")
     ),
     html.style_sheet(
       html.attrs_empty(),
@@ -37,15 +37,15 @@ pub routine main(): void {
   ]);
 
   val body = html.main(
-    html.class_trusted("card"),
+    html.class_name("card"),
     markup.join([
       html.h1(
         html.attrs_empty(),
-        markup.trusted_raw("Native Oreslang SSR")
+        markup.text("Native Oreslang SSR")
       ),
       html.p(
         html.attrs_empty(),
-        markup.trusted_raw(
+        markup.text(
           "HTML and CSS generated from Oreslang source with no Java templates."
         )
       )

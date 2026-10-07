@@ -28,9 +28,9 @@ Those boundaries keep rendering reusable with `oreslang-http-routing` or another
 
 The first implementation uses a tiny eager value model:
 
-- `Markup = { html: string }`
-- `Attrs = { html: string }`
-- `Stylesheet = { css: string }`
+- nominal `Markup` with immutable private string storage
+- nominal `Attrs` with immutable private string storage
+- nominal `Stylesheet` with immutable private string storage
 - `HtmlResponse = { status, content_type, body }`
 
 The API composes these values with ordinary Oreslang functions. There is no Java template engine and no hidden host callback layer.
@@ -47,11 +47,15 @@ The target contract is Maud-like:
 4. trusted/raw CSS is explicit;
 5. rendering never gains Java interop authority.
 
-Current Oreslang cannot implement rule 1 or 2 correctly in native source because strings are not traversable and expose no native transform primitive. That language gap is tracked in `oreslang-source.java#246`.
+The pinned compiler provides literal replacement and private class construction.
+Escaping is implemented in Oreslang with ampersands replaced first. It does not
+interpret existing entities or recursively process replacement text. `Markup`
+and `Attrs` reject record-shaped impostors and direct external construction.
 
-A second gap is representation hiding: the current record-shaped `Markup` value is structurally forgeable. An opaque/newtype/private-representation facility is tracked in `oreslang-source.java#248`.
-
-Until #246 and #248 land, this repo intentionally exposes only names containing `trusted` or `trusted_raw` for string-to-markup/string-to-attribute/tag conversion. This is less convenient but does not disguise an injection risk.
+`html.attr` only accepts inert names; executable and URL contexts retain
+explicitly trusted APIs until dedicated policy is implemented. The private
+classes replace the old structural aliases and are an intentional type-level
+API change. Rendering remains eager; a native UTF-8 builder is still pending.
 
 ## Why not a template DSL first?
 

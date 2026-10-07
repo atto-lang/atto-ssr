@@ -1,44 +1,71 @@
 // Core SSR markup value.
 //
-// IMPORTANT: trusted_raw() is intentionally explicit.
-// Safe conversion from arbitrary dynamic strings is blocked on oreslang-source.java#246.
+// The nominal value has immutable private storage and no public constructor.
+pub define class Markup as
+  private val string html;
 
-type Markup = {html: string};
+  private constructor(string value) {
+    self.html = value;
+  }
+
+  pub static fnc trusted_raw(string value): Markup {
+    return new Markup(value);
+  }
+
+  pub render(): string {
+    return self.html;
+  }
+end
 
 define module markup as
 
+  // Escape data for HTML text and double-quoted inert attribute values.
+  // Ampersands go first; inserted entities are never interpreted or decoded.
+  pub fnc escape_html_data(string value): string {
+    return value.replace_literal("&", "&amp;")
+      .replace_literal("<", "&lt;")
+      .replace_literal(">", "&gt;")
+      .replace_literal("\"", "&quot;")
+      .replace_literal("'", "&#39;");
+  }
+
+  pub fnc text(string value): Markup {
+    return Markup.trusted_raw(escape_html_data(value));
+  }
+
   pub fnc empty(): Markup {
-    return obj{html: ""};
+    return Markup.trusted_raw("");
   }
 
   pub fnc trusted_raw(string html): Markup {
-    return obj{html: html};
+    return Markup.trusted_raw(html);
   }
 
   pub fnc concat(Markup left, Markup right): Markup {
-    return obj{html: left.html + right.html};
+    return Markup.trusted_raw(render(left) + render(right));
   }
 
   pub fnc join(Array<Markup> parts): Markup {
     let string rendered = "";
 
     for (val part of parts) {
-      rendered = rendered + part.html;
+      rendered = rendered + render(part);
     }
 
-    return obj{html: rendered};
+    return Markup.trusted_raw(rendered);
   }
 
   pub fnc when(bool condition, Markup value): Markup {
     if condition then
-      return value;
+      return value as Markup;
     fi
 
     return empty();
   }
 
   pub fnc render(Markup value): string {
-    return value.html;
+    val checked = value as Markup;
+    return checked.render();
   }
 
 end
