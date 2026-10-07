@@ -1,121 +1,32 @@
-# oreslang-ssr
+# Oreslang
 
-Native server-side HTML/CSS rendering for Oreslang.
+Oreslang is a statically typed GraalVM/Truffle language with nominal typing by default, explicit structural-call opt-ins, actor-oriented concurrency, hot-loadable code generations, and deny-by-default isolate capabilities.
 
-This repository is intentionally **Oreslang source only** for rendering semantics: no Java templates, no host reflection, and no client-side rendering runtime.
+This repository contains the Java/Truffle reference implementation.
 
-## Goal
+The language is intentionally opinionated:
 
-Provide the Oreslang equivalent of the small, composable server-rendering layer you get from Maud plus the lightweight HTML response boundary you get from Axum:
+- static nominal typing by default, with explicit structural compatibility at selected call boundaries;
+- private functions by default (`fnc`), with `pub` for exported functions;
+- class methods omit `fnc` and have an implicit `self` receiver;
+- class construction uses a single explicit `constructor(...)` declaration (never a Java-style class-name constructor); top-level classes/constructors are file-private, while module classes/constructors are private by default and may be `pub`;
+- classes cannot nest inside classes; class bodies contain fields, an optional constructor, methods, and `static fnc` members only;
+- one return value only (tuples/arrays/records are ordinary single values);
+- `val`, `const`, and `let` are the only variable declarations;
+- actor heaps are isolated: mutable values are never shared between actors;
+- immutable/sendable values may be message-passed, and explicitly frozen regions may be shared read-only;
+- isolates are stricter security boundaries for FaaS/mobile workloads, with host access denied and Oreslang APIs capability-gated by default;
+- JIT, AOT/interpreter, and AOT-host + guest-JIT hybrid execution profiles;
+- file-granular incremental compilation with stable code-unit/package identities and reverse-dependency invalidation;
+- flat optional file namespaces and flat modules (neither may nest);
+- class-level `static fnc` functions separated from receiver methods;
+- first-class function aliases/types and block-only `|args| -> { ... }` lambdas;
+- lexical closures with persistent captured environments;
+- affine ownership, move checking, borrows, immutable-by-default parameters, and `Type mut name` owned-mutation syntax - see [ft borrow, ft copy, ft take, ft share]
+- hot reload creates a fresh versioned guest context/generation without requiring FFI or dynamic native libraries;
+- direct method calls reuse shared class method definitions; instance/actor methods are direct-call-only, and callbacks use explicit lambdas instead of implicit bound-method values;
+- multiple named modules may appear in one source file;
+- explicit `return` statements;
+- generics, tuples, arrays, complex numbers, futures/`await`, lambdas, `defer`, and `try/catch/finally` are language-level features.
 
-- markup values compose with normal Oreslang functions;
-- HTML documents and partial fragments use the same renderer;
-- CSS can be generated from Oreslang source;
-- HTTP integration receives a tiny `HtmlResponse` value;
-- HTMX attributes make server-rendered interactivity useful before Oreslang has a JS/WASM target.
-
-## Current modules
-
-- `src/markup.ores` — `Markup`, composition, joining, conditional markup, rendering.
-- `src/html.ores` — attributes, generic elements, void elements, documents, common tag helpers.
-- `src/css.ores` — declarations, rules, media queries, stylesheet composition.
-- `src/htmx.ores` — `hx-*` attribute helpers for requests, targets, triggers, swaps, selection, OOB swaps.
-- `src/response.ores` — Axum-like HTML response value: status + content type + body.
-
-## Example
-
-```ores
-import module markup from './src/markup';
-import module html from './src/html';
-import module htmx from './src/htmx';
-import module response from './src/response';
-
-pub fnc counter_fragment(): {status: int, content_type: string, body: string} {
-  val body = html.div(
-    html.attrs_join([
-      html.attr_trusted("id", "counter"),
-      htmx.post_trusted("/counter/increment"),
-      htmx.target_trusted("#counter"),
-      htmx.outer_html()
-    ]),
-    html.button(
-      html.attrs_empty(),
-      markup.trusted_raw("Increment")
-    )
-  );
-
-  return response.fragment(body);
-}
-```
-
-That is server-side HTML generation only. HTMX performs the browser request/swap; Oreslang does not need to ship a browser runtime.
-
-## Security: dynamic escaping is intentionally gated
-
-The desired API is escaped-by-default, Maud-style.
-
-Current Oreslang cannot yet implement a correct arbitrary-string HTML escaper in native source because strings are not traversable/indexable and have no native transform/builder primitive.
-
-The escaping primitive gap is tracked at **oreslang-source.java#246**. A second issue, **#248**, tracks the opaque/newtype boundary needed to make `Markup` unforgeable rather than merely a record convention.
-
-Until it lands:
-
-- string-to-HTML conversion is explicitly `markup.trusted_raw(...)`;
-- HTML attributes are explicitly `html.attr_trusted(...)`;
-- HTMX values use `*_trusted(...)`;
-- CSS values/selectors use explicitly trusted helpers;
-- these functions must not receive untrusted/user-controlled data.
-
-We intentionally do **not** provide a fake `escape()` or misleading safe-looking `text(string)` API.
-
-See [docs/SECURITY.md](docs/SECURITY.md).
-
-## Design principles
-
-1. **Native Oreslang semantics.** Rendering policy lives in `.ores` files.
-2. **Escaped-by-default target.** Raw HTML remains an explicit escape hatch.
-3. **No framework-owned DOM.** Markup is server output, not a browser VDOM.
-4. **Functions over ceremony.** Components are ordinary functions returning `Markup`.
-5. **Router-independent.** `HtmlResponse` can adapt to `oreslang-http-routing` or another server.
-6. **HTMX-friendly.** Full pages and partial fragments are equally first-class.
-7. **Streaming-compatible design.** The eager string implementation can later lower to a UTF-8 builder/writer.
-8. **No client story yet.** JS/WASM rendering is deferred until Oreslang has a supported browser compilation target.
-
-## Examples
-
-```bash
-oreslang check examples/basic-page.ores
-oreslang check examples/htmx-fragment.ores
-```
-
-or:
-
-```bash
-bash scripts/check.sh
-```
-
-### Compiler compatibility note
-
-These sources follow the current intended Oreslang syntax, including:
-
-```ores
-define module markup as
-  ...
-end
-```
-
-At the time this branch was created, the compiler's default `main` still had older module parsing without mandatory `as`. This repo follows the newer language contract rather than writing new library code in stale syntax.
-
-## Roadmap
-
-See:
-
-- [docs/DESIGN.md](docs/DESIGN.md)
-- [docs/SECURITY.md](docs/SECURITY.md)
-- [docs/ROADMAP.md](docs/ROADMAP.md)
-
-The next critical steps are safe dynamic string escaping via #246 and an opaque `Markup` representation via #248; after that, add native UTF-8 builder/streaming output and a direct adapter for `oreslang-http-routing`.
-
-## Compiler PR checkpoint (2026-10-06)
-
-A [repository-specific compiler compatibility matrix](docs/compiler-pr-sync.md) tracks the 10 newest `oreslang-source.java` PRs. They remain unmerged upstream; existing demos, build flags, and stable compiler references stay unchanged pending exact-SHA conformance testing.
+The first implementation is developed on a feature branch and will land with an executable Truffle skeleton, grammar/specification, examples, tests, and CI.
