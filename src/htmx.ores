@@ -1,11 +1,11 @@
 import module html from './html';
-import type Attrs from './html';
+import class Attrs from './html';
 
 // HTMX is a natural fit for native Oreslang SSR: the browser receives HTML
 // fragments and performs requests/swaps without Oreslang needing JS/WASM.
 //
-// Values remain trusted until #246 provides the native string primitives
-// required for context-aware escaping.
+// HTMX values remain trusted: HTML escaping alone does not validate URLs,
+// selectors, trigger expressions, or executable hx-vals policies.
 define module htmx as
 
   pub fnc get_trusted(string url): Attrs {

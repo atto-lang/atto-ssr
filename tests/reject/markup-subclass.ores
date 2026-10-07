@@ -1,0 +1,7 @@
+import class Markup from '../../src/markup';
+define class Forged extends Markup as
+end
+pub routine main(): void {
+  val forged = new Forged();
+  return;
+}

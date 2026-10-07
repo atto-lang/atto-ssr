@@ -1,0 +1,17 @@
+[]
+&amp;&lt;&gt;&quot;&#39;
+&amp;lt;script&amp;gt;&amp;#39;&amp;amp;
+café é 😀 中文 &lt;&amp;&gt;
+&lt;/script&gt;&lt;img src=x onerror=alert(1)&gt;
+<div title="&quot; autofocus onfocus=&#39;alert(1)&#39; &lt;&gt;&amp;">&lt;b&gt;data&lt;/b&gt;</div>
+<div id="x&quot; y" class="a&amp;b">é😀</div>
+true
+true
+true
+true
+true
+true
+true
+true
+true
+<b>explicit trust</b>

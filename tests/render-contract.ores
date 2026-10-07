@@ -50,12 +50,12 @@ pub routine main(): void {
   stdio.println(missing.content_type);
   stdio.println(missing.body);
 
-  stdio.println("[" + markup.render(
-    markup.when(false, markup.trusted_raw("hidden"))
-  ) + "]");
-  stdio.println("[" + markup.render(
-    markup.when(true, markup.trusted_raw("shown"))
-  ) + "]");
+  stdio.stdout.write("[");
+  stdio.stdout.write(markup.render(markup.when(false, markup.text("hidden"))));
+  stdio.println("]");
+  stdio.stdout.write("[");
+  stdio.stdout.write(markup.render(markup.when(true, markup.text("shown"))));
+  stdio.println("]");
 
   stdio.println(markup.render(
     markup.concat(
