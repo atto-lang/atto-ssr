@@ -115,3 +115,7 @@ See:
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 
 The next critical steps are safe dynamic string escaping via #246 and an opaque `Markup` representation via #248; after that, add native UTF-8 builder/streaming output and a direct adapter for `oreslang-http-routing`.
+
+## Compiler PR checkpoint (2026-10-06)
+
+A [repository-specific compiler compatibility matrix](docs/compiler-pr-sync.md) tracks the 10 newest `oreslang-source.java` PRs. They remain unmerged upstream; existing demos, build flags, and stable compiler references stay unchanged pending exact-SHA conformance testing.
