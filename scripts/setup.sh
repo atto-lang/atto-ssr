@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$root/.work"
+# A failed setup must never leave a runnable launcher for an older build.
+rm -f "$root/.work/ores"
 revision="$(tr -d '[:space:]' < "$root/compiler.lock")"
 expected_tree="$(tr -d '[:space:]' < "$root/compiler-tree.txt")"
 if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || ! "$expected_tree" =~ ^[0-9a-f]{40}$ ]]; then
@@ -9,6 +12,10 @@ if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || ! "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
 fi
 source_dir="$root/.work/compiler"
 mkdir -p "$root/.work"
+if [[ -L "$source_dir" ]]; then
+  echo "compiler path must not be a symlink" >&2
+  exit 65
+fi
 if [[ ! -e "$source_dir" ]]; then
   git clone --depth 1 --single-branch --branch "compiler-mirror/$revision" \
     https://github.com/ores-truffle-oreslang/oreslang-ssr.git "$source_dir"
@@ -25,9 +32,11 @@ if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; 
   echo "compiler checkout must be clean; preserving local changes" >&2
   exit 65
 fi
-mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests package dependency:build-classpath \
+mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
   -Dmdep.outputFile="$root/.work/classpath.txt"
-cat > "$root/.work/ores" <<'RUNNER'
+launcher="$(mktemp "$root/.work/.ores.XXXXXX")"
+trap 'rm -f "$launcher"' EXIT
+cat > "$launcher" <<'RUNNER'
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,5 +45,6 @@ exec java --enable-native-access=ALL-UNNAMED \
   -Dpolyglot.engine.WarnInterpreterOnly=false -cp "$classpath" \
   dev.oreslang.launcher.OresMain "$@"
 RUNNER
-chmod +x "$root/.work/ores"
+chmod +x "$launcher"
+mv -f "$launcher" "$root/.work/ores"
 echo "compiler ready: bash scripts/test.sh"
