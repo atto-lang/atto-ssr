@@ -43,6 +43,7 @@ class SetupContracts(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('clean\npackage\n', (self.root / 'args').read_text())
         self.assertIn('exec java', self.launcher.read_text())
+        self.assertIn('OresMain --core-io=native-async-only', self.launcher.read_text())
         self.assertTrue(os.access(self.launcher, os.X_OK))
 
     def test_failed_build_removes_stale_launcher(self):

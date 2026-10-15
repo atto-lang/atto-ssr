@@ -43,7 +43,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 classpath="$root/.work/compiler/target/classes:$(cat "$root/.work/classpath.txt")"
 exec java --enable-native-access=ALL-UNNAMED \
   -Dpolyglot.engine.WarnInterpreterOnly=false -cp "$classpath" \
-  dev.oreslang.launcher.OresMain "$@"
+  dev.oreslang.launcher.OresMain --core-io=native-async-only "$@"
 RUNNER
 chmod +x "$launcher"
 mv -f "$launcher" "$root/.work/ores"
