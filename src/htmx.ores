@@ -68,4 +68,27 @@ define module htmx as
     return swap_trusted("innerHTML");
   }
 
+  // HTMX extension helpers for backend-owned workflow UI projections.
+  // All inputs are trusted: validate URL path, event names, and selectors in
+  // the application's routing/auth policy. Escaping is NOT URL authorization.
+  pub fnc extension_trusted(string extensions): Attrs {
+    return html.attr_trusted("hx-ext", extensions);
+  }
+
+  pub fnc sse_extension(): Attrs {
+    return extension_trusted("sse");
+  }
+
+  pub fnc sse_connect_trusted(string url): Attrs {
+    return html.attr_trusted("sse-connect", url);
+  }
+
+  pub fnc sse_swap_trusted(string event_name): Attrs {
+    return html.attr_trusted("sse-swap", event_name);
+  }
+
+  pub fnc sse_close_trusted(string event_name): Attrs {
+    return html.attr_trusted("sse-close", event_name);
+  }
+
 end

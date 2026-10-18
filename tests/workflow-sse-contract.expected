@@ -1,0 +1,1 @@
+<div id="workflow-editor" hx-ext="sse" sse-connect="/workflows/run-7/events" sse-swap="editor" sse-close="done"><p>Editing &lt;private&gt;</p></div>
