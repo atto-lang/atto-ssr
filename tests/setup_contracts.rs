@@ -80,7 +80,7 @@ impl Fixture {
         let mvn = fixture.bin.join("mvn");
         fs::write(
             &mvn,
-            "#!/bin/sh\nprintf \"%s\\n\" \"$@\" > \"$SETUP_ARGS\"\nexit \"\${SETUP_FAIL:-0}\"\n",
+            "#!/bin/sh\nprintf \"%s\\n\" \"$@\" > \"$SETUP_ARGS\"\nexit \"${SETUP_FAIL:-0}\"\n",
         )
         .unwrap();
         let mut perms = fs::metadata(&mvn).unwrap().permissions();
