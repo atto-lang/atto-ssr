@@ -13,4 +13,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Check compiler admission and failed-build launcher contracts
-        run: python3 -m unittest discover -s tests -p test_setup.py -v
+        run: cargo test --test setup_contracts -- --nocapture
