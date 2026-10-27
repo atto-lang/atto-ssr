@@ -167,3 +167,19 @@ fn symlink_input_is_rejected_before_build() {
     assert!(!f.run_setup(false).status.success());
     assert!(!f.root.join("args").exists());
 }
+
+#[test]
+fn symlink_workdir_rejected_without_deleting_redirected_launcher() {
+    let f = Fixture::new();
+    let work = f.root.join(".work");
+    let retained = f.root.join("saved-work");
+    fs::rename(&work, &retained).unwrap();
+    symlink(&retained, &work).unwrap();
+    let original = fs::read_to_string(retained.join("ores")).unwrap();
+
+    let output = f.run_setup(false);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("work directory must not be a symlink"));
+    assert_eq!(fs::read_to_string(retained.join("ores")).unwrap(), original);
+    assert!(!f.root.join("args").exists(), "no build command may run");
+}
