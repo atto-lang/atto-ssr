@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+# The private checkout and launcher may never be redirected through a .work
+# symlink. Check this BEFORE deleting an old launcher or opening compiler data.
+if [[ -L "$root/.work" ]]; then
+  echo "compiler work directory must not be a symlink" >&2
+  exit 65
+fi
 mkdir -p "$root/.work"
-# A failed setup must never leave a runnable launcher for an older build.
+if [[ "$(cd "$root/.work" && pwd -P)" != "$root/.work" ]]; then
+  echo "compiler work directory resolves outside repository" >&2
+  exit 65
+fi
+# A failed build in a valid owned work directory must not leave an old launcher.
 rm -f "$root/.work/ores"
 revision="$(tr -d '[:space:]' < "$root/compiler.lock")"
 expected_tree="$(tr -d '[:space:]' < "$root/compiler-tree.txt")"
