@@ -71,7 +71,11 @@ if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; 
   echo "compiler checkout must be clean; preserving local changes" >&2
   exit 65
 fi
-mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
+maven_mode=()
+if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
+  maven_mode=(-o)
+fi
+mvn -B -ntp -q "${maven_mode[@]}" -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
   -Dmdep.outputFile="$root/.work/classpath.txt"
 launcher="$(mktemp "$root/.work/.ores.XXXXXX")"
 trap 'rm -f "$launcher"' EXIT
