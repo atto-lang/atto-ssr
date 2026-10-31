@@ -60,5 +60,20 @@ pub routine main(): void {
   stdio.println(safe_html.render_with_depth_limit(HtmlNode.br([]), 1).unwrap());
   stdio.println(safe_html.render_with_depth_limit(HtmlNode.fragment([leaf]), 1).is_err());
   stdio.println(safe_html.render_with_depth_limit(HtmlNode.fragment([leaf]), 2).unwrap());
+  // Depth is capped at 64 and occurrence count at 4096 before render.
+  // Duplicated references consume separate occurrences (not unique nodes).
+  val pair = HtmlNode.div([], [HtmlNode.text("A"), HtmlNode.text("B")]);
+  stdio.println(safe_html.render_with_limits(pair, 2, 3).unwrap());
+  stdio.println(safe_html.render_with_limits(pair, 2, 2).is_err());
+  stdio.println(safe_html.render_with_limits(pair, 1, 3).is_err());
+  stdio.println(safe_html.render_with_limits(pair, 64, 4096).unwrap());
+  stdio.println(safe_html.render_with_limits(pair, 65, 3).is_err());
+  stdio.println(safe_html.render_with_limits(pair, 0, 3).is_err());
+  stdio.println(safe_html.render_with_limits(pair, 2, 0).is_err());
+  stdio.println(safe_html.render_with_limits(pair, 2, 4097).is_err());
+  val repeated_leaf = HtmlNode.text("<x>");
+  val repeated = HtmlNode.fragment([repeated_leaf, repeated_leaf]);
+  stdio.println(safe_html.render_with_limits(repeated, 2, 3).unwrap());
+  stdio.println(safe_html.render_with_limits(repeated, 2, 2).is_err());
   return;
 }
