@@ -35,6 +35,8 @@ Implemented with the pinned literal replacement primitive and nominal classes wi
 - adapters for `oreslang-http-routing`
 - typed handler result / `IntoResponse`-like contract
 - redirects, headers, cache control
+- [x] body-forbidden status gate for `HtmlResponse` (pending pinned guest test)
+- [ ] bounded actor-native rendering/transport: [streaming contract](STREAMING_CONTRACT.md)
 - HTMX response headers
 - content negotiation where useful
 
