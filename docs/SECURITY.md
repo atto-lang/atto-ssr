@@ -70,6 +70,33 @@ as script or style source. Generic tag names remain trusted because tag choice
 changes parsing context. URL helpers and safe HTMX JSON/expression handling
 remain separate work.
 
+## Typed same-origin path syntax and expression-free HTMX
+
+`url.local_path(Array<string>)` produces an opaque nominal `LocalPath`
+with a private constructor. A segment contains only ASCII letters, digits,
+underscore and hyphen; no empty segments; at most 8 segments and 64 ASCII
+bytes per segment. Zero segments produce `/`. There is no untrusted
+authority, scheme, dot, slash, backslash, percent-encoding, fragment, query,
+whitespace, control byte, or non-ASCII character in a segment. Validation
+is deliberately conservative: it does NOT authorize HTTP routes, methods,
+tenants, redirects, cookies, CSRF protections or downstream proxies.
+
+`html.href_local`, `html.action_local`, and the seven HTMX `*_local`
+helpers only accept `LocalPath`. They HTML-encode the value, although
+the path grammar excludes HTML delimiter characters. Older `*_trusted`
+APIs remain an explicit policy-bypass escape hatch and are not appropriate
+for attacker-controlled values.
+
+`htmx.swap`, `htmx.trigger`, and `htmx.target` accept a small
+expression-free exact-value subset and return `Result<Attrs,string>`.
+The helpers reject arbitrary selectors, trigger modifiers, event filters,
+JavaScript expressions, and swap modifiers. `htmx.vals_empty()` produces
+a fixed `{}` JSON value. Do not assemble JSON or JS-based `hx-vals`
+through string concatenation: use a typed JSON serializer and an
+application-level allowlist. Rejecting URL syntax does not prove application
+authorization, and no URL parser or origin policy for general URLs is
+claimed. Route normalization must agree with this restricted grammar.
+
 ## HTML response status boundary
 
 `HtmlResponse` always contains an eagerly rendered body and
