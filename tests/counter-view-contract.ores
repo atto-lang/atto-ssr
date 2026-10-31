@@ -1,0 +1,12 @@
+import module markup from '../src/markup';
+import module counter_view from '../src/counter_view';
+
+pub routine main(): void {
+  stdio.println(markup.render(
+    counter_view.fragment("<script>alert('x')</script>", "x\" onfocus=\"evil&")
+  ));
+  stdio.println(markup.render(
+    counter_view.page("42", "csrf-7")
+  ));
+  return;
+}
