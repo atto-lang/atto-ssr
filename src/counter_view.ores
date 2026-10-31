@@ -1,0 +1,52 @@
+import module markup from './markup';
+import class Markup from './markup';
+import module html from './html';
+import module htmx from './htmx';
+import module url from './url';
+
+// Pure counter VIEW: the stateful counter actor and its critical mutation
+// belong to the Oreslang HTTP application, not the SSR library. `count_text`
+// must be obtained from an authorized actor snapshot; it is always HTML-
+// escaped. `csrf_token` must be generated and validated by the HTTP
+// application, never by this renderer.
+define module counter_view as
+
+  pub fnc fragment(string count_text, string csrf_token): Markup {
+    val increment = url.local_path(["counter", "increment"]).unwrap();
+
+    val form_attrs = html.attrs_join([
+      html.id("counter"),
+      html.action_local(increment),
+      html.method_trusted("post"),
+      htmx.post_local(increment),
+      htmx.target_trusted("#counter"),
+      htmx.outer_html()
+    ]);
+
+    val token_attrs = html.attrs_join([
+      html.attr_trusted("type", "hidden"),
+      html.attr_value_trusted("name", "csrf_token"),
+      html.attr("value", csrf_token).unwrap()
+    ]);
+
+    return html.form(
+      form_attrs,
+      html.fragment([
+        html.input(token_attrs),
+        html.p(html.attrs_empty(), markup.text(count_text)),
+        html.button(
+          html.attr_trusted("type", "submit"),
+          markup.text("Increment")
+        )
+      ])
+    );
+  }
+
+  pub fnc page(string count_text, string csrf_token): Markup {
+    return html.document(
+      html.title(html.attrs_empty(), markup.text("Counter")),
+      html.main(html.attrs_empty(), fragment(count_text, csrf_token))
+    );
+  }
+
+end
