@@ -42,10 +42,12 @@ define module counter_view as
     );
   }
 
+  // A token-bearing page must not be saved to htmx localStorage history.
+  // The real HTTP adapter must ALSO send Cache-Control: private, no-store.
   pub fnc page(string count_text, string csrf_token): Markup {
     return html.document(
       html.title(html.attrs_empty(), markup.text("Counter")),
-      html.main(html.attrs_empty(), fragment(count_text, csrf_token))
+      html.main(htmx.no_history_snapshot(), fragment(count_text, csrf_token))
     );
   }
 
