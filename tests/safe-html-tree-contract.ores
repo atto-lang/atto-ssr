@@ -1,0 +1,40 @@
+import module markup from '../src/markup';
+import module safe_html from '../src/safe_html';
+import class SafeAttr from '../src/safe_html';
+import class HtmlNode from '../src/safe_html';
+import module url from '../src/url';
+
+// A serialized HTML tree must keep data as text even with script-like input.
+// Attributes are encoded at serialization; dynamic tag names are unavailable.
+pub routine main(): void {
+  val path = url.local_path(["users", "a_2"]).unwrap();
+  val tree = HtmlNode.div(
+    [
+      SafeAttr.id("app"),
+      SafeAttr.title("\" onclick=\"alert(1)"),
+      SafeAttr.class_name("a&b")
+    ],
+    [
+      HtmlNode.h1([], [HtmlNode.text("<Welcome>")]),
+      HtmlNode.p([SafeAttr.aria_label("x'y")], [HtmlNode.text("</script>&<b>")]),
+      HtmlNode.a([SafeAttr.href_local(path)], [HtmlNode.text("profile")]),
+      HtmlNode.input([SafeAttr.disabled(true), SafeAttr.value("a\"b")]),
+      HtmlNode.input([SafeAttr.disabled(false)])
+    ]
+  );
+
+  stdio.println(safe_html.render(tree));
+  stdio.println(safe_html.render(HtmlNode.fragment([
+    HtmlNode.text("<"),
+    HtmlNode.span([], [HtmlNode.text("A&B")]),
+    HtmlNode.br([]),
+    HtmlNode.text(">")
+  ])));
+  stdio.println(markup.render(safe_html.to_markup(tree)) == safe_html.render(tree));
+  stdio.println(SafeAttr.method_get().render());
+  stdio.println(SafeAttr.method_post().render());
+  stdio.println(SafeAttr.disabled(false).render() == "");
+  stdio.println(SafeAttr.href_local(path).render());
+  stdio.println(SafeAttr.action_local(path).render());
+  return;
+}
