@@ -77,5 +77,25 @@ pub routine main(): void {
   stdio.println(safe_html.render_with_limits(repeated, 2, 2).is_err());
   stdio.println(safe_html.render_with_depth_limit(leaf, 65).is_err());
   stdio.println(safe_html.render_with_depth_limit(leaf, 64).unwrap());
+  // Boundary oracle using shared subtrees. Rendered occurrences count
+  // includes repeated references, even though constructed objects are few.
+  val level_0 = HtmlNode.text("x");
+  val level_1 = HtmlNode.fragment([level_0, level_0]);
+  val level_2 = HtmlNode.fragment([level_1, level_1]);
+  val level_3 = HtmlNode.fragment([level_2, level_2]);
+  val level_4 = HtmlNode.fragment([level_3, level_3]);
+  val level_5 = HtmlNode.fragment([level_4, level_4]);
+  val level_6 = HtmlNode.fragment([level_5, level_5]);
+  val level_7 = HtmlNode.fragment([level_6, level_6]);
+  val level_8 = HtmlNode.fragment([level_7, level_7]);
+  val level_9 = HtmlNode.fragment([level_8, level_8]);
+  val level_10 = HtmlNode.fragment([level_9, level_9]);
+  val level_11 = HtmlNode.fragment([level_10, level_10]);
+  val exactly_4096 = HtmlNode.fragment([level_11]);
+  val over_4096 = HtmlNode.fragment([level_11, HtmlNode.text("y")]);
+  stdio.println(safe_html.render_with_limits(exactly_4096, 64, 4096).is_err());
+  stdio.println(safe_html.render_with_limits(exactly_4096, 64, 4095).is_err());
+  stdio.println(safe_html.render_with_limits(over_4096, 64, 4096).is_err());
+  stdio.println(safe_html.render_with_limits(over_4096, 64, 4095).is_err());
   return;
 }
