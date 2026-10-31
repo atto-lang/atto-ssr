@@ -148,6 +148,12 @@ provision **both** independent source trees, not only the SSR application tree:
    `.work/ores`; Maven exit status alone is not a valid runnable-compiler
    receipt. The host tests mock these artifacts, so even a passing host test
    cannot substitute for a real GraalVM build and guest execution.
+   To prevent a false-positive from **ignored build outputs** left by an earlier
+   run, setup invalidates the prior classpath and `OresMain.class` before
+   invoking Maven. It rejects symlinked intermediate class-output directories
+   and the entrypoint itself **before** deleting artifacts or invoking Maven
+   clean. This is an artifact freshness guard, not a cryptographic bytecode
+   attestation; real guest execution is still required.
 4. Capture the original head SHA/tree, mirrored head/tree, pinned compiler
    revision, actual compiler mirror commit/tree, workflow run attempt,
    job/step IDs, exit codes, and test outputs. Check the exact SHA again before
