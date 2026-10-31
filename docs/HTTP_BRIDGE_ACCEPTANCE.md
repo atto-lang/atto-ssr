@@ -121,3 +121,29 @@ IDs in a pinned router snapshot.
 Source-only JS-model fixtures are **not** real Oreslang compiler, native or
 wire results. Existing zero-step GitHub Actions failures indicate runner
 admission, not a failing guest program.
+
+## Offline exact-tree compiler admission (private CI mirror)
+
+Before launching any guest code in an alternate private test organization,
+provision **both** independent source trees, not only the SSR application tree:
+
+1. Exact SSR candidate head/tree into the destination's private source branch.
+2. Compiler snapshot into `.work/compiler` in that checkout, as its own clean
+   Git repository with `HEAD^{tree}` exactly equal to `compiler-tree.txt`.
+   `compiler.lock` identifies the upstream pinned revision; a new local mirror
+   commit with identical Git tree is permitted and its actual commit SHA is
+   printed in the compiler provenance line.
+3. Execute `ORESLANG_OFFLINE=1 bash scripts/setup.sh`, followed by the
+   complete positive/negative guest suite. The setup must **never** fall back
+   to cloning a private source across organizations when the compiler checkout
+   is absent. Invalid offline settings fail closed.
+4. Capture the original head SHA/tree, mirrored head/tree, pinned compiler
+   revision, actual compiler mirror commit/tree, workflow run attempt,
+   job/step IDs, exit codes, and test outputs. Check the exact SHA again before
+   treating the tests as evidence.
+
+Never use the test organization's `GITHUB_TOKEN` to check out the private
+origin from a different organization. A successful source-free runner canary
+does **not** imply the application and compiler trees were mirrored or tested.
+If GitHub rejects object writes or no admissible source path exists, stop and
+retain the source-only classification. Do not bypass a failed transfer.
