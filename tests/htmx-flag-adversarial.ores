@@ -10,7 +10,7 @@ pub routine main(): void {
   stdio.println(htmx_http.parse_flag(true, false, "true ").is_err());
   stdio.println(htmx_http.parse_flag(true, false, "TRUE").is_err());
   stdio.println(htmx_http.parse_flag(true, false, "true,true").is_err());
-  stdio.println(htmx_http.parse_flag(true, false, "true\t").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true;false").is_err());
   stdio.println(htmx_http.parse_flag(true, true, "false").is_err());
   stdio.println(htmx_http.parse_flag(false, false, "").unwrap() == false);
   stdio.println(htmx_http.parse_flag(true, false, "false").unwrap() == false);
