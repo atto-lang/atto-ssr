@@ -45,12 +45,14 @@ methods. Callers that fabricated or read `{html: string}` must migrate.
 
 ## Explicit trust
 
-These APIs bypass data encoding and require trusted, context-correct input:
+These APIs require trusted, context-correct inputs. Some are raw and bypass encoding; others encode HTML delimiters but still trust their URL, selector or executable semantics:
 
 - `markup.trusted_raw` and `Markup.trusted_raw`
-- `html.attr_trusted`, `Attrs.trusted_raw`, and `*_trusted` attribute helpers
+- `html.attr_trusted`, `Attrs.trusted_raw`, and `html.bool_attr_trusted` (raw attributes or names)
 - `html.element_trusted` and `html.void_element_trusted`
-- `css.trusted_raw`, `Stylesheet.trusted_raw`, and CSS/HTMX `*_trusted` helpers
+- `css.trusted_raw`, `Stylesheet.trusted_raw`, and CSS `*_trusted` helpers
+- HTMX `*_trusted` helpers (HTML-value-encoded, still policy-trusted)
+- fixed-name HTML `*_trusted` helpers (HTML-value-encoded, still policy-trusted)
 - `html.script_trusted`
 
 The `html.attr_value_trusted(name, value)` boundary trusts the attribute
