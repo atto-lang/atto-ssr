@@ -1,0 +1,19 @@
+import module htmx_http from '../src/htmx_http';
+
+// Transport-adapter flags are untrusted even when their caller says "absent".
+// Each line must be true. No HTTP parser or real network I/O is exercised.
+pub routine main(): void {
+  stdio.println(htmx_http.parse_flag(false, true, "").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "false").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, " true").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true ").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "TRUE").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true,true").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true\t").is_err());
+  stdio.println(htmx_http.parse_flag(true, true, "false").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "").unwrap() == false);
+  stdio.println(htmx_http.parse_flag(true, false, "false").unwrap() == false);
+  stdio.println(htmx_http.parse_flag(true, false, "true").unwrap());
+  return;
+}
