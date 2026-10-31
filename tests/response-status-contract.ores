@@ -1,0 +1,28 @@
+import module markup from '../src/markup';
+import module response from '../src/response';
+
+// This response type always contains HTML body bytes.
+pub routine main(): void {
+  val payload = markup.text("safe <body>");
+  stdio.println(response.with_status(99, payload).is_err());
+  stdio.println(response.with_status(100, payload).is_err());
+  stdio.println(response.with_status(101, payload).is_err());
+  stdio.println(response.with_status(199, payload).is_err());
+  stdio.println(response.with_status(200, payload).is_err());
+  stdio.println(response.with_status(201, payload).is_err());
+  stdio.println(response.with_status(204, payload).is_err());
+  stdio.println(response.with_status(205, payload).is_err());
+  stdio.println(response.with_status(206, payload).is_err());
+  stdio.println(response.with_status(301, payload).is_err());
+  stdio.println(response.with_status(304, payload).is_err());
+  stdio.println(response.with_status(308, payload).is_err());
+  stdio.println(response.with_status(404, payload).is_err());
+  stdio.println(response.with_status(418, payload).is_err());
+  stdio.println(response.with_status(599, payload).is_err());
+  stdio.println(response.with_status(600, payload).is_err());
+  val ok = response.with_status(200, payload).unwrap();
+  stdio.println(ok.status);
+  stdio.println(ok.content_type);
+  stdio.println(ok.body);
+  return;
+}

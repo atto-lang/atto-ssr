@@ -22,8 +22,12 @@ define module response as
   }
 
   pub fnc with_status(int status, Markup body): Result<HtmlResponse, string> {
-    if status < 100 || status > 599 then
-      return Err("HTTP status must be between 100 and 599");
+    // SSR response always carries body and HTML Content-Type.
+    if status < 200 || status > 599 then
+      return Err("renderable HTML status must be between 200 and 599");
+    fi
+    if status == 204 || status == 205 || status == 304 then
+      return Err("HTTP status must not carry an HTML response body");
     fi
 
     return Ok(build(status, body));
