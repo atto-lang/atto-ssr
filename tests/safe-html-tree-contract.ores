@@ -36,5 +36,12 @@ pub routine main(): void {
   stdio.println(SafeAttr.disabled(false).render() == "");
   stdio.println(SafeAttr.href_local(path).render());
   stdio.println(SafeAttr.action_local(path).render());
+  let Array<SafeAttr> attrs = arr[SafeAttr.id("stable")];
+  let Array<HtmlNode> children = arr[HtmlNode.text("first")];
+  val snapshot = HtmlNode.div(attrs, children);
+  attrs.add(SafeAttr.title("late"));
+  children.add(HtmlNode.text("late"));
+  stdio.println(safe_html.render(snapshot));
+  stdio.println(safe_html.render(HtmlNode.section([], [snapshot, snapshot])));
   return;
 }
