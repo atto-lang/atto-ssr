@@ -1,0 +1,8 @@
+<div id="app" title="&quot; onclick=&quot;alert(1)" class="a&amp;b"><h1>&lt;Welcome&gt;</h1><p aria-label="x&#39;y">&lt;/script&gt;&amp;&lt;b&gt;</p><a href="/users/a_2">profile</a><input disabled value="a&quot;b"><input></div>
+&lt;<span>A&amp;B</span><br>&gt;
+true
+ method="get"
+ method="post"
+true
+ href="/users/a_2"
+ action="/users/a_2"
