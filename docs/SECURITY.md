@@ -97,6 +97,27 @@ application-level allowlist. Rejecting URL syntax does not prove application
 authorization, and no URL parser or origin policy for general URLs is
 claimed. Route normalization must agree with this restricted grammar.
 
+## Safe HTML node path (opt-in, not yet default)
+
+Prefer `SafeAttr.id/title/class_name/aria_label/value/placeholder/role`,
+`SafeAttr.href_local/action_local`, and fixed methods such as
+`HtmlNode.text/div/span/a/input/fragment` when constructing HTML from
+untrusted data. `SafeAttr` stores unescaped values with private name and
+value fields; the renderer performs HTML encoding at serialization rather
+than trusting a pre-escaped string. `HtmlNode` constructors only select a
+fixed set of ordinary and void tags; no public script/style/raw/dynamic tag
+constructor exists. `safe_html.to_markup` is the **single reviewed bridge**
+to legacy raw `Markup`, and must accept only a `HtmlNode`.
+
+The older `markup.trusted_raw`, `html.attr_trusted`, and
+`html.element_trusted` remain public. Therefore this does **not** enforce
+global safe-by-default behavior, and cannot prevent callers from using the
+legacy raw API. The array arguments of tree constructors also have not yet
+been proved immutable or owned, and the current serializer has no depth,
+encoded-byte, allocation, or recursion limits. No tenant/HTTP isolation is
+implied. The safe-tree fixture and negative nominal-construction cases are
+authored expected oracles, not executed guest proof until CI admission works.
+
 ## HTML response status boundary
 
 `HtmlResponse` always contains an eagerly rendered body and
