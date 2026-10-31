@@ -1,0 +1,227 @@
+import module markup from './markup';
+import class Markup from './markup';
+import class LocalPath from './url';
+import module url from './url';
+
+// Safe HTML attribute descriptor. Unlike legacy Attrs, there is deliberately
+// no public trusted_raw, dynamic-name factory, or raw-value promotion.
+// Values are escaped once at the final HTML serialization boundary.
+pub define class SafeAttr as
+  private val string name;
+  private val string value;
+  private val bool enabled;
+
+  private constructor(string name, string value, bool enabled) {
+    self.name = name;
+    self.value = value;
+    self.enabled = enabled;
+  }
+
+  pub static fnc id(string value): SafeAttr {
+    return new SafeAttr("id", value, true);
+  }
+
+  pub static fnc class_name(string value): SafeAttr {
+    return new SafeAttr("class", value, true);
+  }
+
+  pub static fnc title(string value): SafeAttr {
+    return new SafeAttr("title", value, true);
+  }
+
+  pub static fnc aria_label(string value): SafeAttr {
+    return new SafeAttr("aria-label", value, true);
+  }
+
+  pub static fnc value(string value): SafeAttr {
+    return new SafeAttr("value", value, true);
+  }
+
+  pub static fnc placeholder(string value): SafeAttr {
+    return new SafeAttr("placeholder", value, true);
+  }
+
+  pub static fnc role(string value): SafeAttr {
+    return new SafeAttr("role", value, true);
+  }
+
+  pub static fnc href_local(LocalPath path): SafeAttr {
+    return new SafeAttr("href", url.render(path), true);
+  }
+
+  pub static fnc action_local(LocalPath path): SafeAttr {
+    return new SafeAttr("action", url.render(path), true);
+  }
+
+  pub static fnc method_get(): SafeAttr {
+    return new SafeAttr("method", "get", true);
+  }
+
+  pub static fnc method_post(): SafeAttr {
+    return new SafeAttr("method", "post", true);
+  }
+
+  pub static fnc disabled(bool enabled): SafeAttr {
+    return new SafeAttr("disabled", "", enabled);
+  }
+
+  pub render(): string {
+    if !self.enabled then
+      return "";
+    fi
+    if self.name == "disabled" then
+      return " disabled";
+    fi
+    return " " + self.name + "=\"" + markup.escape_html_data(self.value) + "\"";
+  }
+end
+
+// Closed HTML node algebra: text, fragment, fixed ordinary elements and
+// fixed void elements. No dynamic tags, raw HTML, <script> or <style> factory.
+// Note: arrays are caller-owned; until an owned immutable array/snapshot
+// primitive is proven, this is NOT a transitive immutability guarantee.
+// The compiler and renderer must eventually enforce depth/output limits.
+pub define class HtmlNode as
+  private val string kind;
+  private val string tag;
+  private val string text_value;
+  private val Array<SafeAttr> attributes;
+  private val Array<HtmlNode> children;
+
+  private constructor(string kind, string tag, string value, Array<SafeAttr> attributes, Array<HtmlNode> children) {
+    self.kind = kind;
+    self.tag = tag;
+    self.text_value = value;
+    self.attributes = attributes;
+    self.children = children;
+  }
+
+  pub static fnc text(string value): HtmlNode {
+    return new HtmlNode("text", "", value, [], []);
+  }
+
+  pub static fnc fragment(Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("fragment", "", "", [], children);
+  }
+
+  pub static fnc div(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "div", "", attributes, children);
+  }
+
+  pub static fnc span(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "span", "", attributes, children);
+  }
+
+  pub static fnc p(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "p", "", attributes, children);
+  }
+
+  pub static fnc h1(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "h1", "", attributes, children);
+  }
+
+  pub static fnc h2(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "h2", "", attributes, children);
+  }
+
+  pub static fnc main(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "main", "", attributes, children);
+  }
+
+  pub static fnc section(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "section", "", attributes, children);
+  }
+
+  pub static fnc nav(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "nav", "", attributes, children);
+  }
+
+  pub static fnc form(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "form", "", attributes, children);
+  }
+
+  pub static fnc button(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "button", "", attributes, children);
+  }
+
+  pub static fnc a(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "a", "", attributes, children);
+  }
+
+  pub static fnc ul(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "ul", "", attributes, children);
+  }
+
+  pub static fnc li(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "li", "", attributes, children);
+  }
+
+  pub static fnc title(Array<SafeAttr> attributes, Array<HtmlNode> children): HtmlNode {
+    return new HtmlNode("element", "title", "", attributes, children);
+  }
+
+  pub static fnc input(Array<SafeAttr> attributes): HtmlNode {
+    return new HtmlNode("void", "input", "", attributes, []);
+  }
+
+  pub static fnc br(Array<SafeAttr> attributes): HtmlNode {
+    return new HtmlNode("void", "br", "", attributes, []);
+  }
+
+  pub static fnc hr(Array<SafeAttr> attributes): HtmlNode {
+    return new HtmlNode("void", "hr", "", attributes, []);
+  }
+
+  pub static fnc meta(Array<SafeAttr> attributes): HtmlNode {
+    return new HtmlNode("void", "meta", "", attributes, []);
+  }
+
+  pub static fnc link(Array<SafeAttr> attributes): HtmlNode {
+    return new HtmlNode("void", "link", "", attributes, []);
+  }
+
+  pub render(): string {
+    if self.kind == "text" then
+      return markup.escape_html_data(self.text_value);
+    fi
+
+    let string rendered = "";
+    if self.kind == "fragment" then
+      for (val child of self.children) {
+        val checked = child as HtmlNode;
+        rendered = rendered + checked.render();
+      }
+      return rendered;
+    fi
+
+    rendered = "<" + self.tag;
+    for (val attr of self.attributes) {
+      val checked = attr as SafeAttr;
+      rendered = rendered + checked.render();
+    }
+    rendered = rendered + ">";
+    if self.kind == "void" then
+      return rendered;
+    fi
+
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      rendered = rendered + checked.render();
+    }
+    return rendered + "</" + self.tag + ">";
+  }
+end
+
+define module safe_html as
+  pub fnc render(HtmlNode node): string {
+    val checked = node as HtmlNode;
+    return checked.render();
+  }
+
+  // Reviewed bridge: only the closed SafeAttr/HtmlNode constructors can
+  // produce the serialized bytes entering legacy Markup.trusted_raw here.
+  // Never extend this bridge to accept caller-supplied HTML strings.
+  pub fnc to_markup(HtmlNode node): Markup {
+    return markup.trusted_raw(render(node));
+  }
+end
