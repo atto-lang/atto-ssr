@@ -57,6 +57,28 @@ explicitly trusted APIs until dedicated policy is implemented. The private
 classes replace the old structural aliases and are an intentional type-level
 API change. Rendering remains eager; a native UTF-8 builder is still pending.
 
+## Opt-in closed HTML node model
+
+`src/safe_html.ores` introduces an opt-in structural `HtmlNode` tree and
+`SafeAttr` descriptor. Private constructors and a finite set of typed
+factories exclude unknown attribute names and element tags. Values remain
+**unescaped data** in nodes/attributes until `safe_html.render`, which
+escapes them at the final HTML serialization boundary. Fixed element
+constructors cover ordinary HTML and void tags; no script/style/raw node
+factory is exposed. URL-bearing attributes accept only the nominal
+`LocalPath` grammar from the stacked URL policy work. The only bridge into
+the legacy `Markup` type is the reviewed `safe_html.to_markup(HtmlNode)`
+conversion, which serializes the already-typed tree.
+
+This is **not** yet the default `html` or `markup` API. Those retain explicit
+`trusted_raw` escape hatches for compatibility, so source code can still
+opt into unsafe HTML. `HtmlNode` holds arrays supplied by the caller: until
+Oreslang has a verified immutable owned-array snapshot, we cannot claim
+transitive immutability or resource bounds, nor can we claim that cycles or
+very deep trees are safely rejected. Rendering is synchronous and eager
+with repeated string concatenation and can be costly. Actor-native bounded
+streaming is still required separately.
+
 ## Why not a template DSL first?
 
 Oreslang already has:
