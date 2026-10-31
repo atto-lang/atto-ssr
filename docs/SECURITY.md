@@ -118,7 +118,7 @@ with an authored late-mutation regression fixture, **not yet compiler/run
 evidence**. It is not a proof of cross-actor heap isolation or safe recursive
 depth. The opt-in `safe_html.render_with_depth_limit(node, max_depth)` now rejects
 invalid and exceeded structural depth before producing a rendered string.
-The new `safe_html.render_with_limits(node,max_depth,max_nodes)` validates depth (1–64) and rendered node occurrences (1–4096) before generating HTML. The depth-only entrypoint delegates to the same capped node-count preflight with a 4096-node limit. Repeated references are counted per occurrence, not deduplicated. The unchecked legacy `safe_html.render()` remains for compatibility, and no entrypoint yet enforces encoded UTF-8 byte quotas or allocation limits. This policy remains unverified by compiler guest execution. No tenant/HTTP isolation is
+`safe_html.render_with_limits(node,max_depth,max_nodes)` validates depth (1–64), rendered node occurrences (1–4096), and at most 4096 attribute descriptors before generating HTML. `safe_html.render_with_resource_limits(node,max_depth,max_nodes,max_attrs)` accepts a smaller attribute cap (0–4096). The depth-only helper delegates through the same default 4096-node and 4096-attribute caps. Repeated references count for every render occurrence; even disabled attributes count conservatively. The unchecked legacy `safe_html.render()` remains for compatibility. No entrypoint yet enforces encoded UTF-8 byte quotas, construction-time limits, or total allocations. This policy remains unverified by compiler guest execution. No tenant/HTTP isolation is
 implied. The safe-tree fixture and negative nominal-construction cases are
 authored expected oracles, not executed guest proof until CI admission works.
 
