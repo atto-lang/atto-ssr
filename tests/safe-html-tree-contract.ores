@@ -48,5 +48,17 @@ pub routine main(): void {
   children.add(snapshot);
   stdio.println(safe_html.render(snapshot));
 
+  val leaf = HtmlNode.text("<");
+  val two_levels = HtmlNode.div([], [leaf]);
+  val three_levels = HtmlNode.section([], [two_levels]);
+  stdio.println(safe_html.render_with_depth_limit(leaf, 1).unwrap());
+  stdio.println(safe_html.render_with_depth_limit(leaf, 0).is_err());
+  stdio.println(safe_html.render_with_depth_limit(two_levels, 1).is_err());
+  stdio.println(safe_html.render_with_depth_limit(two_levels, 2).unwrap());
+  stdio.println(safe_html.render_with_depth_limit(three_levels, 2).is_err());
+  stdio.println(safe_html.render_with_depth_limit(three_levels, 3).unwrap());
+  stdio.println(safe_html.render_with_depth_limit(HtmlNode.br([]), 1).unwrap());
+  stdio.println(safe_html.render_with_depth_limit(HtmlNode.fragment([leaf]), 1).is_err());
+  stdio.println(safe_html.render_with_depth_limit(HtmlNode.fragment([leaf]), 2).unwrap());
   return;
 }
