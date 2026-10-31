@@ -1,0 +1,6 @@
+<a href="/search?q=&quot; onmouseover=&quot;alert(1)&amp;x=&lt;b&gt;">Safe &lt;link&gt;</a>
+<form action="/submit&quot; onsubmit=&quot;steal()&amp;q=&#39;">form</form>
+<input id="user&quot; autofocus=&quot;true" class="x&amp;y">
+<button hx-post="/save&quot; onclick=&quot;bad()&amp;item=&lt;1&gt;">Save</button>
+<div hx-target="#slot&quot; onclick=&quot;bad()" hx-trigger="click&quot; onfocus=&quot;bad()" hx-vals="{&quot;x&quot;:&quot;&lt;tag&gt;&amp;&#39;&quot;}">Data</div>
+<div sse-connect="/events?name=&quot; onmouseover=&quot;bad()&amp;a=&lt;b&gt;">SSE</div>

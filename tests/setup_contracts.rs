@@ -183,3 +183,32 @@ fn symlink_workdir_rejected_without_deleting_redirected_launcher() {
     assert_eq!(fs::read_to_string(retained.join("ores")).unwrap(), original);
     assert!(!f.root.join("args").exists(), "no build command may run");
 }
+
+#[test]
+fn symlinked_classpath_does_not_overwrite_external_file() {
+    let f = Fixture::new();
+    let outside = f.root.join("classpath-sentinel");
+    fs::write(&outside, "retain this file").unwrap();
+    symlink(&outside, f.root.join(".work/classpath.txt")).unwrap();
+    let output = f.run_setup(false);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("classpath path must not be a symlink"));
+    assert_eq!(fs::read_to_string(&outside).unwrap(), "retain this file");
+    assert!(!f.root.join("args").exists(), "Maven must not run");
+    assert!(!f.launcher.exists(), "old launcher must be invalidated");
+}
+
+#[test]
+fn symlinked_compiler_target_does_not_run_maven_clean() {
+    let f = Fixture::new();
+    let outside = f.root.join("target-sentinel");
+    fs::create_dir(&outside).unwrap();
+    fs::write(outside.join("keep.txt"), "keep").unwrap();
+    symlink(&outside, f.compiler.join("target")).unwrap();
+    let output = f.run_setup(false);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("target directory must not be a symlink"));
+    assert_eq!(fs::read_to_string(outside.join("keep.txt")).unwrap(), "keep");
+    assert!(!f.root.join("args").exists(), "Maven clean must not run");
+    assert!(!f.launcher.exists(), "old launcher must be invalidated");
+}

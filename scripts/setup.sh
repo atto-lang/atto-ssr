@@ -14,6 +14,11 @@ if [[ "$(cd "$root/.work" && pwd -P)" != "$root/.work" ]]; then
 fi
 # A failed build in a valid owned work directory must not leave an old launcher.
 rm -f "$root/.work/ores"
+# Prevent Maven's classpath output from following a caller-owned symlink.
+if [[ -L "$root/.work/classpath.txt" ]]; then
+  echo "compiler classpath path must not be a symlink" >&2
+  exit 65
+fi
 revision="$(tr -d '[:space:]' < "$root/compiler.lock")"
 expected_tree="$(tr -d '[:space:]' < "$root/compiler-tree.txt")"
 if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || ! "$expected_tree" =~ ^[0-9a-f]{40}$ ]]; then
@@ -40,6 +45,11 @@ if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; 
 fi
 if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; then
   echo "compiler checkout must be clean; preserving local changes" >&2
+  exit 65
+fi
+# Maven clean must not touch an ignored symlinked target directory.
+if [[ -L "$source_dir/target" ]]; then
+  echo "compiler target directory must not be a symlink" >&2
   exit 65
 fi
 mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \

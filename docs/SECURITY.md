@@ -53,6 +53,16 @@ These APIs bypass data encoding and require trusted, context-correct input:
 - `css.trusted_raw`, `Stylesheet.trusted_raw`, and CSS/HTMX `*_trusted` helpers
 - `html.script_trusted`
 
+The `html.attr_value_trusted(name, value)` boundary trusts the attribute
+name and semantic context, but HTML-encodes its quoted value. All HTMX helpers
+and the fixed-name `id_trusted`, `class_trusted`, `href_trusted`,
+`action_trusted`, and `method_trusted` helpers now use it. Embedded quotes
+cannot open an additional HTML attribute. **This does not validate URLs,
+selectors, JavaScript or HTMX expressions.** Applications must still authorize
+URLs and constrain executable semantics. This deliberately changes behavior
+for previously pre-encoded trusted helper inputs; pass the original input
+instead. `html.attr_trusted` remains the explicit raw escape hatch.
+
 Do not pass untrusted data to them. In particular, HTML text must not be reused
 as script or style source. Generic tag names remain trusted because tag choice
 changes parsing context. URL helpers and safe HTMX JSON/expression handling

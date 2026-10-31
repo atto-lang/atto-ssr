@@ -46,4 +46,9 @@ if grep -nE '\.html([^A-Za-z0-9_]|$)' examples/*.ores tests/*.ores 2>/dev/null; 
   fail "application code must render Markup through the public API"
 fi
 
+# A trusted HTMX expression must still be safely encoded as an HTML value.
+if grep -nF 'html.attr_trusted(' src/htmx.ores; then
+  fail "HTMX values must pass through the encoded attribute-value boundary"
+fi
+
 echo "audit: native SSR invariants passed"

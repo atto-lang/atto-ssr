@@ -55,9 +55,16 @@ define module html as
     return Attrs.trusted_raw("");
   }
 
-  // Both name and value are trusted. Use attr() for escaped inert values.
+  // Both name and value are raw and trusted. Use attr_value_trusted() for
+  // a trusted attribute name with safely encoded HTML attribute value.
   pub fnc attr_trusted(string name, string value): Attrs {
     return Attrs.trusted_raw(" " + name + "=\"" + value + "\"");
+  }
+
+  // The name and URL/selector/expression semantics remain trusted, but
+  // delimiter characters in the value cannot terminate the HTML attribute.
+  pub fnc attr_value_trusted(string name, string value): Attrs {
+    return attr_trusted(name, markup.escape_html_data(value));
   }
 
   pub fnc bool_attr_trusted(string name, bool enabled): Attrs {
@@ -69,23 +76,23 @@ define module html as
   }
 
   pub fnc id_trusted(string value): Attrs {
-    return attr_trusted("id", value);
+    return attr_value_trusted("id", value);
   }
 
   pub fnc class_trusted(string value): Attrs {
-    return attr_trusted("class", value);
+    return attr_value_trusted("class", value);
   }
 
   pub fnc href_trusted(string value): Attrs {
-    return attr_trusted("href", value);
+    return attr_value_trusted("href", value);
   }
 
   pub fnc action_trusted(string value): Attrs {
-    return attr_trusted("action", value);
+    return attr_value_trusted("action", value);
   }
 
   pub fnc method_trusted(string value): Attrs {
-    return attr_trusted("method", value);
+    return attr_value_trusted("method", value);
   }
 
   pub fnc attrs_join(Array<Attrs> attrs): Attrs {

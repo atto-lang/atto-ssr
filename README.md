@@ -70,6 +70,11 @@ Ordinary records cannot impersonate them. Trusted conversions remain explicit:
 This changes the former record aliases to nominal classes; callers importing
 these names must use `import class`, and must render through the public API.
 
+Fixed-name `*_trusted` attribute helpers and `htmx.*_trusted` now
+encode HTML attribute values to prevent quote-breakout; they still trust URL,
+selector, and HTMX expression semantics. Supply unescaped values. Only the
+explicit low-level `html.attr_trusted` API retains raw-attribute behavior.
+
 HTML escaping is context-specific. `html.attr` rejects URL, event, CSS,
 `srcdoc`, HTMX and unknown attributes. Do not treat escaping as URL validation,
 JavaScript/CSS sanitization, or a policy for application code that reinterprets

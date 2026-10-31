@@ -4,60 +4,61 @@ import class Attrs from './html';
 // HTMX is a natural fit for native Oreslang SSR: the browser receives HTML
 // fragments and performs requests/swaps without Oreslang needing JS/WASM.
 //
-// HTMX values remain trusted: HTML escaping alone does not validate URLs,
+// HTMX semantic inputs remain trusted: HTML attribute values are encoded to
+// prevent quote-breakout, but HTML escaping alone does not validate URLs,
 // selectors, trigger expressions, or executable hx-vals policies.
 define module htmx as
 
   pub fnc get_trusted(string url): Attrs {
-    return html.attr_trusted("hx-get", url);
+    return html.attr_value_trusted("hx-get", url);
   }
 
   pub fnc post_trusted(string url): Attrs {
-    return html.attr_trusted("hx-post", url);
+    return html.attr_value_trusted("hx-post", url);
   }
 
   pub fnc put_trusted(string url): Attrs {
-    return html.attr_trusted("hx-put", url);
+    return html.attr_value_trusted("hx-put", url);
   }
 
   pub fnc patch_trusted(string url): Attrs {
-    return html.attr_trusted("hx-patch", url);
+    return html.attr_value_trusted("hx-patch", url);
   }
 
   pub fnc delete_trusted(string url): Attrs {
-    return html.attr_trusted("hx-delete", url);
+    return html.attr_value_trusted("hx-delete", url);
   }
 
   pub fnc target_trusted(string selector): Attrs {
-    return html.attr_trusted("hx-target", selector);
+    return html.attr_value_trusted("hx-target", selector);
   }
 
   pub fnc trigger_trusted(string trigger): Attrs {
-    return html.attr_trusted("hx-trigger", trigger);
+    return html.attr_value_trusted("hx-trigger", trigger);
   }
 
   pub fnc swap_trusted(string strategy): Attrs {
-    return html.attr_trusted("hx-swap", strategy);
+    return html.attr_value_trusted("hx-swap", strategy);
   }
 
   pub fnc select_trusted(string selector): Attrs {
-    return html.attr_trusted("hx-select", selector);
+    return html.attr_value_trusted("hx-select", selector);
   }
 
   pub fnc vals_trusted(string json): Attrs {
-    return html.attr_trusted("hx-vals", json);
+    return html.attr_value_trusted("hx-vals", json);
   }
 
   pub fnc push_url_trusted(string url): Attrs {
-    return html.attr_trusted("hx-push-url", url);
+    return html.attr_value_trusted("hx-push-url", url);
   }
 
   pub fnc swap_oob_trusted(string strategy): Attrs {
-    return html.attr_trusted("hx-swap-oob", strategy);
+    return html.attr_value_trusted("hx-swap-oob", strategy);
   }
 
   pub fnc boost(bool enabled): Attrs {
-    return html.attr_trusted("hx-boost", enabled ? "true" : "false");
+    return html.attr_value_trusted("hx-boost", enabled ? "true" : "false");
   }
 
   pub fnc outer_html(): Attrs {
@@ -72,7 +73,7 @@ define module htmx as
   // All inputs are trusted: validate URL path, event names, and selectors in
   // the application's routing/auth policy. Escaping is NOT URL authorization.
   pub fnc extension_trusted(string extensions): Attrs {
-    return html.attr_trusted("hx-ext", extensions);
+    return html.attr_value_trusted("hx-ext", extensions);
   }
 
   pub fnc sse_extension(): Attrs {
@@ -80,15 +81,15 @@ define module htmx as
   }
 
   pub fnc sse_connect_trusted(string url): Attrs {
-    return html.attr_trusted("sse-connect", url);
+    return html.attr_value_trusted("sse-connect", url);
   }
 
   pub fnc sse_swap_trusted(string event_name): Attrs {
-    return html.attr_trusted("sse-swap", event_name);
+    return html.attr_value_trusted("sse-swap", event_name);
   }
 
   pub fnc sse_close_trusted(string event_name): Attrs {
-    return html.attr_trusted("sse-close", event_name);
+    return html.attr_value_trusted("sse-close", event_name);
   }
 
 end
