@@ -352,3 +352,60 @@ fn zero_exit_maven_without_classpath_does_not_publish_launcher() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("classpath"));
     assert!(!f.launcher.exists());
 }
+
+#[test]
+fn stale_ignored_classpath_and_entrypoint_do_not_validate_maven_success() {
+    let f = Fixture::new();
+    // Real Maven compiler checkouts ignore target/; reproduce that instead
+    // of allowing the Git dirty-tree gate to mask the stale artifact defect.
+    fs::write(f.compiler.join(".git/info/exclude"), "target/\n").unwrap();
+    let entry = f.compiler.join("target/classes/dev/oreslang/launcher/OresMain.class");
+    fs::create_dir_all(entry.parent().unwrap()).unwrap();
+    fs::write(&entry, "stale bytecode").unwrap();
+    let classpath = f.root.join(".work/classpath.txt");
+    fs::write(&classpath, "stale-dependencies.jar\n").unwrap();
+
+    let output = f.run_setup_with_outputs(false, Some("1"), "none");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("classpath"));
+    assert!(!f.launcher.exists());
+    assert!(!entry.exists(), "stale entrypoint must be invalidated before Maven");
+    assert!(!classpath.exists(), "stale classpath must be invalidated before Maven");
+    assert!(f.root.join("args").exists(), "the Maven mock must actually execute");
+}
+
+#[test]
+fn symlinked_nested_class_directory_is_rejected_before_maven() {
+    let f = Fixture::new();
+    fs::write(f.compiler.join(".git/info/exclude"), "target/\n").unwrap();
+    let external = f.root.join("outside-classes");
+    fs::create_dir_all(&external).unwrap();
+    fs::write(external.join("sentinel"), "preserved").unwrap();
+    fs::create_dir_all(f.compiler.join("target")).unwrap();
+    symlink(&external, f.compiler.join("target/classes")).unwrap();
+
+    let output = f.run_setup_with_outputs(false, Some("1"), "all");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("class-output directory must not be a symlink"));
+    assert_eq!(fs::read_to_string(external.join("sentinel")).unwrap(), "preserved");
+    assert!(!f.root.join("args").exists(), "must fail before Maven clean");
+    assert!(!f.launcher.exists());
+}
+
+#[test]
+fn symlinked_entrypoint_is_rejected_without_touching_external_target() {
+    let f = Fixture::new();
+    fs::write(f.compiler.join(".git/info/exclude"), "target/\n").unwrap();
+    let external = f.root.join("outside-bytecode");
+    fs::write(&external, "preserved").unwrap();
+    let entry = f.compiler.join("target/classes/dev/oreslang/launcher/OresMain.class");
+    fs::create_dir_all(entry.parent().unwrap()).unwrap();
+    symlink(&external, &entry).unwrap();
+
+    let output = f.run_setup_with_outputs(false, Some("1"), "all");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("compiler entrypoint must not be a symlink"));
+    assert_eq!(fs::read_to_string(&external).unwrap(), "preserved");
+    assert!(!f.root.join("args").exists(), "must fail before Maven clean");
+    assert!(!f.launcher.exists());
+}
