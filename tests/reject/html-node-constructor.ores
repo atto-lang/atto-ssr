@@ -1,0 +1,6 @@
+import class HtmlNode from '../../src/safe_html';
+pub routine main(): void {
+  val forged = new HtmlNode("element", "script", "", [], []);
+  stdio.println(forged.render());
+  return;
+}
