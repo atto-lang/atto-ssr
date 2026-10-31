@@ -31,7 +31,7 @@ for expected in "${positive_expected[@]}"; do
 done
 for source in "${negative[@]}"; do
   expected="${source%.ores}.err"
-  [[ -f "$expected" && ! -L "$expected" ]] || fail_inventory "missing or unsafe negative expectation: $expected"
+  [[ -f "$expected" && ! -L "$expected" && -s "$expected" ]] || fail_inventory "missing, empty or unsafe negative expectation: $expected"
 done
 for expected in "${negative_expected[@]}"; do
   source="${expected%.err}.ores"
