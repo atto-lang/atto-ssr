@@ -19,7 +19,7 @@ define module htmx_http as
     if duplicate then
       return Err("duplicate HTMX request header");
     fi
-    if !present then
+    if present == false then
       if normalized_value != "" then
         return Err("absent HTMX request header supplied a value");
       fi
