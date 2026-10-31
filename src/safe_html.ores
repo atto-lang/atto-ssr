@@ -78,9 +78,10 @@ end
 
 // Closed HTML node algebra: text, fragment, fixed ordinary elements and
 // fixed void elements. No dynamic tags, raw HTML, <script> or <style> factory.
-// Note: arrays are caller-owned; until an owned immutable array/snapshot
-// primitive is proven, this is NOT a transitive immutability guarantee.
-// The compiler and renderer must eventually enforce depth/output limits.
+// Constructor copies input arrays so later caller mutations cannot change
+// this node's membership; this is not proof of cross-actor heap isolation.
+// The optional depth-limited preflight does not bound encoded output bytes,
+// allocations, or the legacy eager render() entry point.
 pub define class HtmlNode as
   private val string kind;
   private val string tag;
