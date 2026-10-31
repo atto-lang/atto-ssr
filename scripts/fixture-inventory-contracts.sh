@@ -77,6 +77,10 @@ rm "$fake/tests/reject/bad.err"
 assert_rejected_before_guest "missing negative diagnostic"
 
 new_fixture
+: > "$fake/tests/reject/bad.err"
+assert_rejected_before_guest "empty negative diagnostic"
+
+new_fixture
 mv "$fake/examples/demo.ores" "$fake/saved-example.ores"
 ln -s "$fake/saved-example.ores" "$fake/examples/demo.ores"
 assert_rejected_before_guest "symlinked example"
