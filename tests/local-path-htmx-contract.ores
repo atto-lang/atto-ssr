@@ -1,0 +1,55 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+import module url from '../src/url';
+import module htmx from '../src/htmx';
+
+// Exact output and negative policy oracles for typed URL/HTMX boundaries.
+pub routine main(): void {
+  val root = url.local_path([]).unwrap();
+  val nested = url.local_path(["workflows", "run_7"]).unwrap();
+  stdio.println(url.render(root));
+  stdio.println(url.render(nested));
+  stdio.println(markup.render(html.a(html.href_local(nested), markup.text("safe <link>"))));
+  stdio.println(markup.render(html.form(html.action_local(root), markup.text("form"))));
+  stdio.println(markup.render(html.div(
+    html.attrs_join([
+      htmx.get_local(nested),
+      htmx.swap("outerHTML").unwrap(),
+      htmx.trigger("click").unwrap(),
+      htmx.target("this").unwrap(),
+      htmx.vals_empty()
+    ]),
+    markup.text("view")
+  )));
+  stdio.println(markup.render(html.div(
+    html.attrs_join([
+      htmx.post_local(nested),
+      htmx.put_local(nested),
+      htmx.patch_local(nested),
+      htmx.delete_local(nested),
+      htmx.push_url_local(nested),
+      htmx.sse_connect_local(nested)
+    ]),
+    markup.text("actions")
+  )));
+  stdio.println(url.local_path(["."]).is_err());
+  stdio.println(url.local_path([".."]).is_err());
+  stdio.println(url.local_path(["a/b"]).is_err());
+  stdio.println(url.local_path(["%2e%2e"]).is_err());
+  stdio.println(url.local_path(["javascript:alert"]).is_err());
+  stdio.println(url.local_path(["//evil"]).is_err());
+  stdio.println(url.local_path(["a?x=1"]).is_err());
+  stdio.println(url.local_path(["a#frag"]).is_err());
+  stdio.println(url.local_path(["a b"]).is_err());
+  stdio.println(url.local_path(["é"]).is_err());
+  stdio.println(url.local_path([""]).is_err());
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_err());
+  stdio.println(url.local_path(["a","b","c","d","e","f","g","h","i"]).is_err());
+  stdio.println(htmx.swap("outerHTML settle:0s").is_err());
+  stdio.println(htmx.swap("js:alert(1)").is_err());
+  stdio.println(htmx.trigger("click once").is_err());
+  stdio.println(htmx.trigger("every 1ms").is_err());
+  stdio.println(htmx.target("closest [onclick]").is_err());
+  stdio.println(htmx.target("#user").is_err());
+  return;
+}
