@@ -4,6 +4,17 @@
 scheduler proof or native Oreslang guest receipt exists in this PR. Current
 `Markup` and `HtmlResponse` eagerly allocate complete output strings.
 
+## Current typed-tree stepping stone
+
+A closed `HtmlNode` / `SafeAttr` tree now exists in `src/safe_html.ores`.
+It provides serializer-side escaping for fixed tag/attribute contexts,
+without exposing raw node constructors. The **implementation still renders
+eagerly to a string**. Its child/attribute arrays are not proven to own
+immutable snapshots, and the serializer does not enforce byte/depth/memory
+budgets, channel backpressure, tenant ownership, or cancellation. No native
+guest evidence or transport proof has been recorded. The streaming API must
+solve ownership and resource accounting before claiming these properties.
+
 ## API and ownership (planned)
 
 A render request must explicitly carry a tenant-owned render capability, an
