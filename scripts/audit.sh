@@ -53,16 +53,16 @@ fi
 
 # Guard the new safe-by-construction API against accidental raw escape hatches
 # or dynamic tag/name factories. This is a source guard, not compiler proof.
-if grep -nE 'pub (static )?fnc (trusted_raw|attr_trusted|element_trusted|script_trusted|style_sheet|raw|unsafe|from_html|from_raw)\\(' src/safe_html.ores; then
+if grep -nE 'pub (static )?fnc (trusted_raw|attr_trusted|element_trusted|script_trusted|style_sheet|raw|unsafe|from_html|from_raw)\(' src/safe_html.ores; then
   fail "safe_html must not expose raw constructors or promotions"
 fi
-if grep -nE 'pub static fnc (element|void_element|attr)\\(' src/safe_html.ores; then
+if grep -nE 'pub static fnc (element|void_element|attr)\(' src/safe_html.ores; then
   fail "safe_html must not expose dynamically named HTML"
 fi
 if [[ "$(grep -Fc 'markup.trusted_raw(render(node))' src/safe_html.ores)" -ne 1 ]]; then
   fail "safe_html must have one reviewed typed-to-Markup promotion boundary"
 fi
-if grep -nE '(^|[[:space:]])(script|style)[[:space:]]*\\(' src/safe_html.ores; then
+if grep -nE '(^|[[:space:]])(script|style)[[:space:]]*\(' src/safe_html.ores; then
   fail "safe_html cannot expose script/style node constructors"
 fi
 
@@ -73,7 +73,7 @@ for required in 'let Array<SafeAttr> attrs_copy = arr[];' 'let Array<HtmlNode> c
     fail "safe HTML node ownership copy is missing: $required"
   fi
 done
-if grep -nE 'self\\.(attributes|children)[[:space:]]*=[[:space:]]*(attributes|children);' src/safe_html.ores; then
+if grep -nE 'self\.(attributes|children)[[:space:]]*=[[:space:]]*(attributes|children);' src/safe_html.ores; then
   fail "safe HTML nodes must not retain caller array aliases"
 fi
 
