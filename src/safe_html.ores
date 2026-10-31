@@ -92,8 +92,20 @@ pub define class HtmlNode as
     self.kind = kind;
     self.tag = tag;
     self.text_value = value;
-    self.attributes = attributes;
-    self.children = children;
+    // Take independent owned array snapshots before publishing this node.
+    // Otherwise caller .add() operations can mutate a previously built tree
+    // (and can even introduce a self-cycle through a captured input array).
+    // Child nodes and attributes have private immutable fields themselves.
+    let Array<SafeAttr> attrs_copy = arr[];
+    for (val attr of attributes) {
+      attrs_copy.add(attr as SafeAttr);
+    }
+    let Array<HtmlNode> children_copy = arr[];
+    for (val child of children) {
+      children_copy.add(child as HtmlNode);
+    }
+    self.attributes = attrs_copy;
+    self.children = children_copy;
   }
 
   pub static fnc text(string value): HtmlNode {
