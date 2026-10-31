@@ -80,6 +80,21 @@ HTML escaping is context-specific. `html.attr` rejects URL, event, CSS,
 JavaScript/CSS sanitization, or a policy for application code that reinterprets
 an attribute value. See [docs/SECURITY.md](docs/SECURITY.md).
 
+## Safe local URL and HTMX option subset
+
+`url.local_path(["workflows", "run_7"]).unwrap()` yields an opaque
+`LocalPath` equal to `/workflows/run_7`. Its strict ASCII segment
+grammar prevents unsafe authority, scheme, percent-decoding, traversal,
+query and fragment syntax. Use `html.href_local(path)`,
+`html.action_local(path)`, or `htmx.get_local(path)` and corresponding
+HTMX mutation/SSE helpers. For basic HTMX options use
+`htmx.swap("outerHTML")`, `htmx.trigger("click")`, or
+`htmx.target("this")` which return `Result<Attrs,string>`.
+The older `*_trusted` helpers remain explicit escape hatches.
+
+These are syntax boundaries, not route authorization, CSRF protection,
+or guarantees about actual HTTP transport. See `docs/SECURITY.md`.
+
 ## Design principles
 
 1. **Native Oreslang semantics.** Rendering policy lives in `.ores` files.
