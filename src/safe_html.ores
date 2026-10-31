@@ -192,6 +192,23 @@ pub define class HtmlNode as
     return new HtmlNode("void", "link", "", attributes, []);
   }
 
+  // Depth guard for the safe tree only. It checks structure before eager
+  // serialization; it is not an encoded-byte or allocation quota.
+  // At depth=1, a single leaf/void element is admitted; every nested
+  // child consumes one unit. A non-positive remaining budget fails closed.
+  pub within_depth(int remaining): bool {
+    if remaining < 1 then
+      return false;
+    fi
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      if checked.within_depth(remaining - 1) == false then
+        return false;
+      fi
+    }
+    return true;
+  }
+
   pub render(): string {
     if self.kind == "text" then
       return markup.escape_html_data(self.text_value);
@@ -228,6 +245,19 @@ define module safe_html as
   pub fnc render(HtmlNode node): string {
     val checked = node as HtmlNode;
     return checked.render();
+  }
+
+  // Validate depth before serializing any output. Do not change this to
+  // truncation or to a recursive renderer that emits partial success.
+  pub fnc render_with_depth_limit(HtmlNode node, int max_depth): Result<string, string> {
+    val checked = node as HtmlNode;
+    if max_depth < 1 then
+      return Err("HTML maximum depth must be positive");
+    fi
+    if checked.within_depth(max_depth) == false then
+      return Err("HTML nesting exceeds maximum depth");
+    fi
+    return Ok(checked.render());
   }
 
   // Reviewed bridge: only the closed SafeAttr/HtmlNode constructors can
