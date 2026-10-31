@@ -75,5 +75,7 @@ pub routine main(): void {
   val repeated = HtmlNode.fragment([repeated_leaf, repeated_leaf]);
   stdio.println(safe_html.render_with_limits(repeated, 2, 3).unwrap());
   stdio.println(safe_html.render_with_limits(repeated, 2, 2).is_err());
+  stdio.println(safe_html.render_with_depth_limit(leaf, 65).is_err());
+  stdio.println(safe_html.render_with_depth_limit(leaf, 64).unwrap());
   return;
 }
