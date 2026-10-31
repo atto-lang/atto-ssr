@@ -76,8 +76,10 @@ opt into unsafe HTML. `HtmlNode` now constructs private snapshots of supplied `S
 `HtmlNode` arrays, so a caller's later `add()` operation cannot alter
 the already-constructed node's child/attribute membership. This behavior
 has a compiler-backed positive fixture but has **not yet been executed**.
-It does not prove runtime deep ownership across actor boundaries, and
-does not enforce recursion or total byte limits. Rendering remains
+It does not prove runtime deep ownership across actor boundaries. The opt-in
+`safe_html.render_with_depth_limit(node, max_depth)` performs a fail-closed
+preflight over the fixed tree before eager serialization. This constrains
+nesting depth but **does not bound total output bytes, memory, or node count**. Rendering remains
 synchronous and eager with repeated string concatenation. Bounded actor-native
 streaming, scheduler ownership proof and capacity controls remain pending.
 
