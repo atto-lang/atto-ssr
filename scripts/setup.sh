@@ -71,6 +71,26 @@ if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; 
   echo "compiler checkout must be clean; preserving local changes" >&2
   exit 65
 fi
+# Generated classes are ignored by Git; a previous build might leave valid-
+# looking artifacts that could conceal a zero-exit but non-producing Maven
+# invocation. Reject symlinked ancestors before removing anything. Never
+# delete an artifact through a redirect into another directory or repository.
+entry="$source_dir/target/classes/dev/oreslang/launcher/OresMain.class"
+for artifact_dir in \
+  "$source_dir/target/classes" \
+  "$source_dir/target/classes/dev" \
+  "$source_dir/target/classes/dev/oreslang" \
+  "$source_dir/target/classes/dev/oreslang/launcher"; do
+  if [[ -L "$artifact_dir" ]]; then
+    echo "compiler class-output directory must not be a symlink" >&2
+    exit 65
+  fi
+done
+if [[ -L "$entry" ]]; then
+  echo "compiler entrypoint must not be a symlink" >&2
+  exit 65
+fi
+rm -f -- "$root/.work/classpath.txt" "$entry"
 maven_mode=()
 if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
   maven_mode=(-o)
@@ -85,7 +105,6 @@ if [[ -L "$root/.work/classpath.txt" || ! -f "$root/.work/classpath.txt" || ! -s
   echo "compiler build did not produce a nonempty regular classpath file" >&2
   exit 65
 fi
-entry="$source_dir/target/classes/dev/oreslang/launcher/OresMain.class"
 if [[ -L "$entry" || ! -f "$entry" || ! -s "$entry" ]]; then
   echo "compiler build did not produce the expected OresMain class" >&2
   exit 65
