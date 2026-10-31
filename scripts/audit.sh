@@ -66,4 +66,15 @@ if grep -nE '(^|[[:space:]])(script|style)[[:space:]]*\\(' src/safe_html.ores; t
   fail "safe_html cannot expose script/style node constructors"
 fi
 
+# Safe HTML must snapshot caller array arguments before exposing nodes.
+# These source checks complement, but do not replace, compiler-backed tests.
+for required in 'let Array<SafeAttr> attrs_copy = arr[];' 'let Array<HtmlNode> children_copy = arr[];' 'attrs_copy.add(attr as SafeAttr);' 'children_copy.add(child as HtmlNode);' 'self.attributes = attrs_copy;' 'self.children = children_copy;'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML node ownership copy is missing: $required"
+  fi
+done
+if grep -nE 'self\\.(attributes|children)[[:space:]]*=[[:space:]]*(attributes|children);' src/safe_html.ores; then
+  fail "safe HTML nodes must not retain caller array aliases"
+fi
+
 echo "audit: native SSR invariants passed"
