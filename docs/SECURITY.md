@@ -116,8 +116,11 @@ legacy raw API. `HtmlNode` now copies caller-owned attribute and child arrays in
 arrays before publishing the node. This is a source-level ownership defense
 with an authored late-mutation regression fixture, **not yet compiler/run
 evidence**. It is not a proof of cross-actor heap isolation or safe recursive
-depth. The serializer still has no depth, encoded-byte, allocation, or
-recursion limits. No tenant/HTTP isolation is
+depth. The opt-in `safe_html.render_with_depth_limit(node, max_depth)` now rejects
+invalid and exceeded structural depth before producing a rendered string.
+The unchecked legacy `safe_html.render()` remains for compatibility; neither
+entrypoint enforces encoded UTF-8 bytes, output allocation, or node-count
+limits. This policy remains unverified by compiler guest execution. No tenant/HTTP isolation is
 implied. The safe-tree fixture and negative nominal-construction cases are
 authored expected oracles, not executed guest proof until CI admission works.
 
