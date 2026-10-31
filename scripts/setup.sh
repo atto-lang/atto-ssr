@@ -43,13 +43,13 @@ if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; 
   echo "compiler source tree does not match compiler-tree.txt; preserving checkout" >&2
   exit 65
 fi
-if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; then
-  echo "compiler checkout must be clean; preserving local changes" >&2
-  exit 65
-fi
 # Maven clean must not touch an ignored symlinked target directory.
 if [[ -L "$source_dir/target" ]]; then
   echo "compiler target directory must not be a symlink" >&2
+  exit 65
+fi
+if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; then
+  echo "compiler checkout must be clean; preserving local changes" >&2
   exit 65
 fi
 mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
