@@ -6,3 +6,5 @@ true
 true
  href="/users/a_2"
  action="/users/a_2"
+<div id="stable">first</div>
+<section><div id="stable">first</div><div id="stable">first</div></section>
