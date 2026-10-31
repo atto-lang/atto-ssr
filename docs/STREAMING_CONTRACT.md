@@ -10,7 +10,7 @@ A closed `HtmlNode` / `SafeAttr` tree now exists in `src/safe_html.ores`.
 It provides serializer-side escaping for fixed tag/attribute contexts,
 without exposing raw node constructors. The **implementation still renders
 eagerly to a string**. Its constructor now copies input child and attribute arrays, with
-unexecuted source-level mutation-isolation fixtures. The opt-in `render_with_limits` preflight checks depth (up to 64) and the count of rendered node occurrences (up to 4096). The depth-only helper now delegates to that capped preflight. This is **not** a UTF-8 byte, allocation or overall memory quota; a single text node may contain arbitrarily large data. The serializer still
+unexecuted source-level mutation-isolation fixtures. The opt-in `render_with_limits` preflight checks depth (up to 64), rendered node occurrences (up to 4096), and attribute descriptors (up to 4096). `render_with_resource_limits` additionally allows a lower attribute cap. The depth-only helper delegates to the same capped preflight. This is **not** a UTF-8 byte, allocation or overall memory quota; a single text node may contain arbitrarily large data. The serializer still
 does not implement backpressure, tenant/actor ownership or cancellation. No native
 guest evidence or transport proof has been recorded. The streaming API must
 solve ownership and resource accounting before claiming these properties.
