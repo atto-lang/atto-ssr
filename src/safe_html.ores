@@ -210,6 +210,30 @@ pub define class HtmlNode as
     return true;
   }
 
+  // Counts rendered occurrences (not unique object identities) within a
+  // bounded depth. A shared child referenced twice costs two nodes. This
+  // preflight writes no output; it rejects before starting eager rendering.
+  // The public admission wrapper caps depth so recursion cannot grow without
+  // bound. No node-count check can bound text payload bytes on its own.
+  pub count_with_limits(int remaining_depth, int remaining_nodes): Result<int, string> {
+    if remaining_depth < 1 then
+      return Err("HTML nesting exceeds maximum depth");
+    fi
+    if remaining_nodes < 1 then
+      return Err("HTML node count exceeds maximum");
+    fi
+    let int consumed = 1;
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      val child_count = checked.count_with_limits(remaining_depth - 1, remaining_nodes - consumed);
+      if child_count.is_err() then
+        return Err("HTML depth or node budget exceeded");
+      fi
+      consumed = consumed + child_count.unwrap();
+    }
+    return Ok(consumed);
+  }
+
   pub render(): string {
     if self.kind == "text" then
       return markup.escape_html_data(self.text_value);
@@ -257,6 +281,24 @@ define module safe_html as
     fi
     if checked.within_depth(max_depth) == false then
       return Err("HTML nesting exceeds maximum depth");
+    fi
+    return Ok(checked.render());
+  }
+
+  // Constrain preflight traversal with hard upper ceilings. These are
+  // *admission limits*, NOT output-byte or allocation limits. A single huge
+  // text node can still allocate unbounded rendered output.
+  pub fnc render_with_limits(HtmlNode node, int max_depth, int max_nodes): Result<string, string> {
+    val checked = node as HtmlNode;
+    if max_depth < 1 || max_depth > 64 then
+      return Err("HTML maximum depth must be between 1 and 64");
+    fi
+    if max_nodes < 1 || max_nodes > 4096 then
+      return Err("HTML maximum nodes must be between 1 and 4096");
+    fi
+    val counted = checked.count_with_limits(max_depth, max_nodes);
+    if counted.is_err() then
+      return Err("HTML depth or node budget exceeded");
     fi
     return Ok(checked.render());
   }
