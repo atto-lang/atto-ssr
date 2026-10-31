@@ -116,6 +116,28 @@ browser controls but do not replace server authorization or cache policy.
 See [docs/MAUD_AXUM_HTMX.md](docs/MAUD_AXUM_HTMX.md) for the contract,
 wire/guest/browser acceptance matrix, and remaining work.
 
+## Checked HTMX HTTP projection and counter view
+
+The source-only HTTP boundary now provides `htmx_http.reply_checked`:
+the HTTP adapter supplies bounded, normalized HX-Request and
+HX-History-Restore-Request header values with presence/duplicate flags.
+Invalid or duplicate headers fail closed. The resulting record includes the
+selected HTML representation, a HEAD-safe transmitted `body`, `vary`
+metadata, and conservative `cache_control = "private, no-store"` metadata.
+**Metadata does not automatically become HTTP wire headers.**
+
+`counter_view.fragment/page` composes an escaped counter display, a
+typed local action, HTMX partial swaps, and a conventional HTML POST form
+with a hidden CSRF field. `counter_response.get_or_head` combines that
+read-only view with checked HTMX negotiation. The counter actor, its
+`critical` mutation, CSRF verification, routing integration, and HTTP
+transport are **not implemented by this SSR package**.
+
+See [docs/HTTP_BRIDGE_ACCEPTANCE.md](docs/HTTP_BRIDGE_ACCEPTANCE.md) for the
+real router + actor integration plan, admission gates and wire test matrix.
+The three new positive `.ores` fixtures require exact guest execution before
+these changes can be promoted.
+
 ## Design principles
 
 1. **Native Oreslang semantics.** Rendering policy lives in `.ores` files.
