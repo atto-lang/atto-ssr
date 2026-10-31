@@ -70,6 +70,16 @@ as script or style source. Generic tag names remain trusted because tag choice
 changes parsing context. URL helpers and safe HTMX JSON/expression handling
 remain separate work.
 
+## HTML response status boundary
+
+`HtmlResponse` always contains an eagerly rendered body and
+`text/html; charset=utf-8`. Consequently `response.with_status` rejects
+1xx informational statuses and the no-body statuses 204, 205 and 304.
+Render-able statuses otherwise remain 200–599. The HTTP adapter owns
+header authorization (for example redirect `Location`, CSP and cookies)
+and must represent no-body statuses separately. These checks are source-only
+response semantics; they are not HTTP wire evidence.
+
 ## Implementation and validation
 
 HTML policy is native Oreslang source. The compiler supplies a literal string
