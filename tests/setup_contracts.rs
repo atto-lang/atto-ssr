@@ -80,7 +80,18 @@ impl Fixture {
         let mvn = fixture.bin.join("mvn");
         fs::write(
             &mvn,
-            "#!/bin/sh\nprintf \"%s\\n\" \"$@\" > \"$SETUP_ARGS\"\nexit \"${SETUP_FAIL:-0}\"\n",
+            r#"#!/bin/sh
+printf '%s\n' "$@" > "$SETUP_ARGS"
+exitcode="${SETUP_FAIL:-0}"
+if [ "$exitcode" != "0" ]; then exit "$exitcode"; fi
+case "${SETUP_OUTPUTS:-all}" in
+  all|classes) mkdir -p "$SETUP_CLASS_DIR"; printf 'fixture' > "$SETUP_CLASS_DIR/OresMain.class" ;;
+esac
+case "${SETUP_OUTPUTS:-all}" in
+  all|classpath) printf 'stub-dependency.jar\n' > "$SETUP_CLASSPATH" ;;
+esac
+exit 0
+"#,
         )
         .unwrap();
         let mut perms = fs::metadata(&mvn).unwrap().permissions();
@@ -111,6 +122,10 @@ impl Fixture {
     }
 
     fn run_setup_with_offline(&self, fail: bool, offline: Option<&str>) -> Output {
+        self.run_setup_with_outputs(fail, offline, "all")
+    }
+
+    fn run_setup_with_outputs(&self, fail: bool, offline: Option<&str>, outputs: &str) -> Output {
         let old_path = env::var("PATH").unwrap_or_default();
         let mut command = Command::new("bash");
         command
@@ -119,6 +134,9 @@ impl Fixture {
             .env("PATH", format!("{}:{old_path}", self.bin.display()))
             .env("SETUP_ARGS", self.root.join("args"))
             .env("SETUP_FAIL", if fail { "1" } else { "0" })
+            .env("SETUP_CLASS_DIR", self.compiler.join("target/classes/dev/oreslang/launcher"))
+            .env("SETUP_CLASSPATH", self.root.join(".work/classpath.txt"))
+            .env("SETUP_OUTPUTS", outputs)
             .env_remove("ORESLANG_OFFLINE");
         if let Some(value) = offline {
             command.env("ORESLANG_OFFLINE", value);
@@ -306,4 +324,31 @@ fn default_mode_preserves_online_maven_resolution() {
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     let args = fs::read_to_string(f.root.join("args")).unwrap();
     assert!(!args.lines().any(|arg| arg == "-o"), "default mode must preserve Maven behavior");
+}
+
+#[test]
+fn zero_exit_maven_without_artifacts_does_not_publish_launcher() {
+    let f = Fixture::new();
+    let output = f.run_setup_with_outputs(false, Some("1"), "none");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("classpath"));
+    assert!(!f.launcher.exists());
+}
+
+#[test]
+fn zero_exit_maven_without_main_class_does_not_publish_launcher() {
+    let f = Fixture::new();
+    let output = f.run_setup_with_outputs(false, Some("1"), "classpath");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("OresMain"));
+    assert!(!f.launcher.exists());
+}
+
+#[test]
+fn zero_exit_maven_without_classpath_does_not_publish_launcher() {
+    let f = Fixture::new();
+    let output = f.run_setup_with_outputs(false, Some("1"), "classes");
+    assert_eq!(output.status.code(), Some(65));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("classpath"));
+    assert!(!f.launcher.exists());
 }
