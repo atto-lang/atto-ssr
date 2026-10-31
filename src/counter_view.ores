@@ -20,7 +20,10 @@ define module counter_view as
       html.method_trusted("post"),
       htmx.post_local(increment),
       htmx.target_trusted("#counter"),
-      htmx.outer_html()
+      htmx.outer_html(),
+      // This form contains a token. Restrict htmx browser history snapshots
+      // even when rendered as a fragment in an otherwise unprotected page.
+      htmx.no_history_snapshot()
     ]);
 
     val token_attrs = html.attrs_join([
