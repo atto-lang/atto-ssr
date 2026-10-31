@@ -21,6 +21,7 @@ Provide the Oreslang equivalent of the small, composable server-rendering layer 
 - `src/css.ores` — declarations, rules, media queries, stylesheet composition.
 - `src/htmx.ores` — `hx-*` attribute helpers for requests, targets, triggers, swaps, selection, OOB swaps.
 - `src/response.ores` — Axum-like HTML response value: status + content type + body.
+- `src/htmx_request.ores` — choose a full document or a partial response from normalized HTMX request flags, with required HTTP `Vary` metadata.
 
 ## Example
 
@@ -94,6 +95,26 @@ The older `*_trusted` helpers remain explicit escape hatches.
 
 These are syntax boundaries, not route authorization, CSRF protection,
 or guarantees about actual HTTP transport. See `docs/SECURITY.md`.
+
+
+## Maud + Axum + htmx integration
+
+SSR keeps Maud's escaped, composable markup values and Axum's small
+response-boundary approach without adopting Rust macros or a host template
+runtime. HTMX adds incremental fragment swaps, but direct navigation and
+history restoration must return a full page.
+
+`htmx_request.reply(hx_request, history_restore_request, page, fragment)`
+returns status, HTML content type, body, and required `vary` metadata.
+The HTTP adapter **must merge** `Vary: HX-Request,
+HX-History-Restore-Request` into real response headers: returning the record
+does not send those headers itself. It must normalize and validate untrusted
+HTTP flags before passing booleans to SSR. The fixed helpers
+`htmx.no_history_snapshot()` and `htmx.disable_subtree()` support htmx
+browser controls but do not replace server authorization or cache policy.
+
+See [docs/MAUD_AXUM_HTMX.md](docs/MAUD_AXUM_HTMX.md) for the contract,
+wire/guest/browser acceptance matrix, and remaining work.
 
 ## Design principles
 
