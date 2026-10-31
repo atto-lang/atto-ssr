@@ -43,5 +43,10 @@ pub routine main(): void {
   children.add(HtmlNode.text("late"));
   stdio.println(safe_html.render(snapshot));
   stdio.println(safe_html.render(HtmlNode.section([], [snapshot, snapshot])));
+  // A late addition of the node to its original input array must not
+  // introduce a recursive reference into the already-created snapshot.
+  children.add(snapshot);
+  stdio.println(safe_html.render(snapshot));
+
   return;
 }
