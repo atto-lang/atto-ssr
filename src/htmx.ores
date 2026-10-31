@@ -123,6 +123,18 @@ define module htmx as
     return html.attr_value_trusted("hx-boost", enabled ? "true" : "false");
   }
 
+  // Explicitly suppress htmx localStorage history snapshots for sensitive
+  // regions/pages. This does not replace HTTP Cache-Control or redaction.
+  pub fnc no_history_snapshot(): Attrs {
+    return html.attr_value_trusted("hx-history", "false");
+  }
+
+  // Disables HTMX processing for the entire descendant subtree.
+  // It is not an HTML sanitizer or an authorization boundary.
+  pub fnc disable_subtree(): Attrs {
+    return html.bool_attr_trusted("hx-disable", true);
+  }
+
   pub fnc outer_html(): Attrs {
     return swap_trusted("outerHTML");
   }
