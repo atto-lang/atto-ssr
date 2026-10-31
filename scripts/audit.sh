@@ -85,4 +85,12 @@ for required in 'pub fnc render_with_limits(HtmlNode node, int max_depth, int ma
   fi
 done
 
+# The compatibility entrypoint must not bypass the capped budgeted
+# preflight, and unique-node counting would undercount shared subtrees.
+for required in 'return render_with_limits(node, max_depth, 4096);' 'consumed = consumed + child_count.unwrap();' 'if remaining_depth < 1 then' 'if remaining_nodes < 1 then'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML occurrence admission invariant missing: $required"
+  fi
+done
+
 echo "audit: native SSR invariants passed"
