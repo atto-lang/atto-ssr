@@ -112,9 +112,12 @@ to legacy raw `Markup`, and must accept only a `HtmlNode`.
 The older `markup.trusted_raw`, `html.attr_trusted`, and
 `html.element_trusted` remain public. Therefore this does **not** enforce
 global safe-by-default behavior, and cannot prevent callers from using the
-legacy raw API. The array arguments of tree constructors also have not yet
-been proved immutable or owned, and the current serializer has no depth,
-encoded-byte, allocation, or recursion limits. No tenant/HTTP isolation is
+legacy raw API. `HtmlNode` now copies caller-owned attribute and child arrays into private
+arrays before publishing the node. This is a source-level ownership defense
+with an authored late-mutation regression fixture, **not yet compiler/run
+evidence**. It is not a proof of cross-actor heap isolation or safe recursive
+depth. The serializer still has no depth, encoded-byte, allocation, or
+recursion limits. No tenant/HTTP isolation is
 implied. The safe-tree fixture and negative nominal-construction cases are
 authored expected oracles, not executed guest proof until CI admission works.
 
