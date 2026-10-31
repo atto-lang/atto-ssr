@@ -234,6 +234,35 @@ pub define class HtmlNode as
     return Ok(consumed);
   }
 
+  // Count attribute descriptors per rendered occurrence, including
+  // repeated references to the same child. This is a preflight quota,
+  // not an encoded-byte quota: attributes may contain huge values.
+  pub count_attrs_with_limits(int remaining_depth, int remaining_attrs): Result<int, string> {
+    if remaining_depth < 1 then
+      return Err("HTML nesting exceeds maximum depth");
+    fi
+    if remaining_attrs < 0 then
+      return Err("HTML attribute budget exceeded");
+    fi
+    let int consumed = 0;
+    for (val attr of self.attributes) {
+      val checked = attr as SafeAttr;
+      consumed = consumed + 1;
+      if consumed > remaining_attrs then
+        return Err("HTML attribute budget exceeded");
+      fi
+    }
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      val child_count = checked.count_attrs_with_limits(remaining_depth - 1, remaining_attrs - consumed);
+      if child_count.is_err() then
+        return Err("HTML depth or attribute budget exceeded");
+      fi
+      consumed = consumed + child_count.unwrap();
+    }
+    return Ok(consumed);
+  }
+
   pub render(): string {
     if self.kind == "text" then
       return markup.escape_html_data(self.text_value);
@@ -284,6 +313,14 @@ define module safe_html as
   // *admission limits*, NOT output-byte or allocation limits. A single huge
   // text node can still allocate unbounded rendered output.
   pub fnc render_with_limits(HtmlNode node, int max_depth, int max_nodes): Result<string, string> {
+    // Legacy budgeted entrypoint additionally caps attribute descriptors.
+    return render_with_resource_limits(node, max_depth, max_nodes, 4096);
+  }
+
+  // Structural preflight: all three quotas are checked before serialization.
+  // A disabled boolean attribute still consumes one descriptor, which makes
+  // accounting conservative and independent of its serialized text.
+  pub fnc render_with_resource_limits(HtmlNode node, int max_depth, int max_nodes, int max_attrs): Result<string, string> {
     val checked = node as HtmlNode;
     if max_depth < 1 || max_depth > 64 then
       return Err("HTML maximum depth must be between 1 and 64");
@@ -291,9 +328,16 @@ define module safe_html as
     if max_nodes < 1 || max_nodes > 4096 then
       return Err("HTML maximum nodes must be between 1 and 4096");
     fi
+    if max_attrs < 0 || max_attrs > 4096 then
+      return Err("HTML maximum attributes must be between 0 and 4096");
+    fi
     val counted = checked.count_with_limits(max_depth, max_nodes);
     if counted.is_err() then
       return Err("HTML depth or node budget exceeded");
+    fi
+    val counted_attrs = checked.count_attrs_with_limits(max_depth, max_attrs);
+    if counted_attrs.is_err() then
+      return Err("HTML depth or attribute budget exceeded");
     fi
     return Ok(checked.render());
   }
