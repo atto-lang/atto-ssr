@@ -141,6 +141,13 @@ provision **both** independent source trees, not only the SSR application tree:
    already-provisioned local Maven repository. This rejects missing artifacts
    rather than silently fetching them. It is not, by itself, an OS-level
    network sandbox or proof that arbitrary Maven plugins cannot open sockets.
+   After Maven exits successfully, the setup also requires the actual
+   `.work/classpath.txt` file to be nonempty and regular, plus the compiled
+   `target/classes/dev/oreslang/launcher/OresMain.class` to exist and be
+   nonempty and non-symlinked. Otherwise it fails without publishing
+   `.work/ores`; Maven exit status alone is not a valid runnable-compiler
+   receipt. The host tests mock these artifacts, so even a passing host test
+   cannot substitute for a real GraalVM build and guest execution.
 4. Capture the original head SHA/tree, mirrored head/tree, pinned compiler
    revision, actual compiler mirror commit/tree, workflow run attempt,
    job/step IDs, exit codes, and test outputs. Check the exact SHA again before
