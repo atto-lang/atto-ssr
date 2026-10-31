@@ -198,7 +198,7 @@ pub define class HtmlNode as
   // At depth=1, a single leaf/void element is admitted; every nested
   // child consumes one unit. A non-positive remaining budget fails closed.
   pub within_depth(int remaining): bool {
-    if remaining < 1 then
+    if remaining < 1 || remaining > 64 then
       return false;
     fi
     for (val child of self.children) {
@@ -275,14 +275,9 @@ define module safe_html as
   // Validate depth before serializing any output. Do not change this to
   // truncation or to a recursive renderer that emits partial success.
   pub fnc render_with_depth_limit(HtmlNode node, int max_depth): Result<string, string> {
-    val checked = node as HtmlNode;
-    if max_depth < 1 then
-      return Err("HTML maximum depth must be positive");
-    fi
-    if checked.within_depth(max_depth) == false then
-      return Err("HTML nesting exceeds maximum depth");
-    fi
-    return Ok(checked.render());
+    // Compatibility API: run the same capped preflight as the new budgeted
+    // entrypoint. Never let a huge caller-supplied depth bypass stack limits.
+    return render_with_limits(node, max_depth, 4096);
   }
 
   // Constrain preflight traversal with hard upper ceilings. These are
