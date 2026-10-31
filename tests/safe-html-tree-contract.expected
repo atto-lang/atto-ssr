@@ -9,3 +9,12 @@ true
 <div id="stable">first</div>
 <section><div id="stable">first</div><div id="stable">first</div></section>
 <div id="stable">first</div>
+&lt;
+true
+true
+<div>&lt;</div>
+true
+<section><div>&lt;</div></section>
+<br>
+true
+&lt;
