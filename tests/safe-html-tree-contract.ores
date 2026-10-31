@@ -97,5 +97,29 @@ pub routine main(): void {
   stdio.println(safe_html.render_with_limits(exactly_4096, 64, 4095).is_err());
   stdio.println(safe_html.render_with_limits(over_4096, 64, 4096).is_err());
   stdio.println(safe_html.render_with_limits(over_4096, 64, 4095).is_err());
+  // Attribute quota counts serialized occurrences even when children are
+  // shared. A leaf owns two descriptors, and doubling 11 times gives 4096.
+  val attr_level_0 = HtmlNode.input([SafeAttr.id("x"), SafeAttr.title("y")]);
+  val attr_level_1 = HtmlNode.fragment([attr_level_0, attr_level_0]);
+  val attr_level_2 = HtmlNode.fragment([attr_level_1, attr_level_1]);
+  val attr_level_3 = HtmlNode.fragment([attr_level_2, attr_level_2]);
+  val attr_level_4 = HtmlNode.fragment([attr_level_3, attr_level_3]);
+  val attr_level_5 = HtmlNode.fragment([attr_level_4, attr_level_4]);
+  val attr_level_6 = HtmlNode.fragment([attr_level_5, attr_level_5]);
+  val attr_level_7 = HtmlNode.fragment([attr_level_6, attr_level_6]);
+  val attr_level_8 = HtmlNode.fragment([attr_level_7, attr_level_7]);
+  val attr_level_9 = HtmlNode.fragment([attr_level_8, attr_level_8]);
+  val attr_level_10 = HtmlNode.fragment([attr_level_9, attr_level_9]);
+  val attr_level_11 = HtmlNode.fragment([attr_level_10, attr_level_10]);
+  val exact_attrs = HtmlNode.fragment([attr_level_11]);
+  // 4095 nodes, 4097 attribute descriptors: one extra on the root.
+  val extra_attrs = HtmlNode.div([SafeAttr.role("extra")], [attr_level_10, attr_level_10]);
+  stdio.println(safe_html.render_with_resource_limits(exact_attrs, 64, 4096, 4096).is_err());
+  stdio.println(safe_html.render_with_resource_limits(exact_attrs, 64, 4096, 4095).is_err());
+  stdio.println(safe_html.render_with_resource_limits(extra_attrs, 64, 4096, 4096).is_err());
+  stdio.println(safe_html.render_with_resource_limits(HtmlNode.text("x"), 1, 1, 0).unwrap() == "x");
+  stdio.println(safe_html.render_with_resource_limits(HtmlNode.input([SafeAttr.disabled(false)]), 1, 1, 0).is_err());
+  stdio.println(safe_html.render_with_resource_limits(HtmlNode.text("x"), 1, 1, -1).is_err());
+  stdio.println(safe_html.render_with_resource_limits(HtmlNode.text("x"), 1, 1, 4097).is_err());
   return;
 }
