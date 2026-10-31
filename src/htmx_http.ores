@@ -1,0 +1,103 @@
+import class Markup from './markup';
+import module htmx_request from './htmx_request';
+
+// This is NOT an HTTP parser, listener, socket adapter, or trust boundary for
+// authentication. A real HTTP adapter supplies bounded, normalized headers:
+//   - names matched case-insensitively,
+//   - protocol OWS trimmed from values,
+//   - presence + duplicate flags verified against the original field list.
+// Never trust flags derived from a hand-built application request object.
+// Invalid, duplicated, or internally inconsistent HX flags fail closed.
+// Even a correctly parsed HX flag grants no route/method/CSRF capability.
+define module htmx_http as
+
+  pub fnc parse_flag(
+    bool present,
+    bool duplicate,
+    string normalized_value
+  ): Result<bool, string> {
+    if duplicate then
+      return Err("duplicate HTMX request header");
+    fi
+    if !present then
+      if normalized_value != "" then
+        return Err("absent HTMX request header supplied a value");
+      fi
+      return Ok(false);
+    fi
+    if normalized_value == "true" then
+      return Ok(true);
+    fi
+    if normalized_value == "false" then
+      return Ok(false);
+    fi
+    return Err("HTMX request header must be exactly true or false");
+  }
+
+  // A projection for a future, real HTTP adapter. Both the representation
+  // and the body actually allowed on the wire are retained: for HEAD,
+  // `body` is empty but `representation_body` remains the GET variant so
+  // the transport can compute correct headers (especially Content-Length).
+  // `cache_control` is deliberately no-store until cache partitioning and
+  // Vary/ETag implementation have executed wire-level verification.
+  pub fnc reply_checked(
+    bool hx_present,
+    bool hx_duplicate,
+    string hx_value,
+    bool restore_present,
+    bool restore_duplicate,
+    string restore_value,
+    bool suppress_body,
+    Markup full_page,
+    Markup fragment
+  ): Result<{
+    status: int,
+    content_type: string,
+    body: string,
+    representation_body: string,
+    vary: string,
+    cache_control: string
+  }, string> {
+    val hx = parse_flag(hx_present, hx_duplicate, hx_value);
+    if hx.is_err() then
+      return Err("invalid HX-Request");
+    fi
+
+    val restore = parse_flag(
+      restore_present,
+      restore_duplicate,
+      restore_value
+    );
+    if restore.is_err() then
+      return Err("invalid HX-History-Restore-Request");
+    fi
+
+    val selected = htmx_request.reply(
+      hx.unwrap(),
+      restore.unwrap(),
+      full_page,
+      fragment
+    );
+    let string wire_body = selected.body;
+    if suppress_body then
+      wire_body = "";
+    fi
+
+    return Ok(struct{
+      status: int,
+      content_type: string,
+      body: string,
+      representation_body: string,
+      vary: string,
+      cache_control: string
+    }{
+      status: selected.status,
+      content_type: selected.content_type,
+      body: wire_body,
+      representation_body: selected.body,
+      vary: selected.vary,
+      cache_control: "private, no-store"
+    });
+  }
+
+end
