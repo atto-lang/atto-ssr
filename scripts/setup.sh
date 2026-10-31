@@ -31,7 +31,18 @@ if [[ -L "$source_dir" ]]; then
   echo "compiler path must not be a symlink" >&2
   exit 65
 fi
+# A tree-complete, verified mirror can pre-populate .work/compiler.
+# Offline mode MUST never attempt a private origin clone with an unrelated
+# organization's GITHUB_TOKEN (or fall back to implicit network access).
+case "${ORESLANG_OFFLINE:-0}" in
+  0|1) ;;
+  *) echo "ORESLANG_OFFLINE must be 0 or 1" >&2; exit 65 ;;
+esac
 if [[ ! -e "$source_dir" ]]; then
+  if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
+    echo "offline compiler checkout missing: $source_dir" >&2
+    exit 69
+  fi
   git clone --depth 1 --single-branch --branch "compiler-mirror/$revision" \
     https://github.com/ores-truffle-oreslang/oreslang-ssr.git "$source_dir"
 fi
@@ -39,7 +50,15 @@ if [[ "$(git -C "$source_dir" rev-parse --show-toplevel)" != "$(cd "$source_dir"
   echo "compiler path must be its own Git checkout" >&2
   exit 65
 fi
-if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; then
+actual_commit="$(git -C "$source_dir" rev-parse 'HEAD')" || {
+  echo "compiler checkout has no readable HEAD" >&2
+  exit 65
+}
+actual_tree="$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" || {
+  echo "compiler checkout has no readable Git tree" >&2
+  exit 65
+}
+if [[ "$actual_tree" != "$expected_tree" ]]; then
   echo "compiler source tree does not match compiler-tree.txt; preserving checkout" >&2
   exit 65
 fi
@@ -67,4 +86,5 @@ exec java --enable-native-access=ALL-UNNAMED \
 RUNNER
 chmod +x "$launcher"
 mv -f "$launcher" "$root/.work/ores"
+printf 'compiler snapshot: pinned_ref=%s checkout_ref=%s tree=%s\n' "$revision" "$actual_commit" "$actual_tree"
 echo "compiler ready: bash scripts/test.sh"
