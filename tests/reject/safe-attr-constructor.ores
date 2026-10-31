@@ -1,0 +1,6 @@
+import class SafeAttr from '../../src/safe_html';
+pub routine main(): void {
+  val forged = new SafeAttr("onclick", "alert(1)", true);
+  stdio.println(forged.render());
+  return;
+}
