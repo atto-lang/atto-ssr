@@ -1,0 +1,40 @@
+import module counter_response from '../src/counter_response';
+
+pub routine main(): void {
+  val direct = counter_response.get_or_head(
+    false, false, "",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(direct.body);
+
+  val fragment = counter_response.get_or_head(
+    true, false, "true",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(fragment.body);
+
+  val restored = counter_response.get_or_head(
+    true, false, "true",
+    true, false, "true",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(restored.body == direct.body);
+
+  val head = counter_response.get_or_head(
+    true, false, "true",
+    false, false, "",
+    true, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(head.body == "");
+  stdio.println(head.representation_body == fragment.body);
+
+  stdio.println(counter_response.get_or_head(
+    true, true, "true",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).is_err());
+  stdio.println(direct.cache_control);
+  return;
+}
