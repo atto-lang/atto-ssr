@@ -53,8 +53,8 @@ check_rejection() {
 
 check_rejection "raw-factory" 'pub static fnc raw(string value): SafeAttr {' 'safe_html must not expose raw constructors or promotions'
 check_rejection "dynamic-tag" 'pub static fnc element(string name): HtmlNode {' 'safe_html must not expose dynamically named HTML'
-check_rejection "script" 'pub fnc script(string code): HtmlNode {' 'safe_html cannot expose script/style node constructors'
-check_rejection "style" 'pub fnc style(string code): HtmlNode {' 'safe_html cannot expose script/style node constructors'
+check_rejection "script" 'pub static fnc script(string code): HtmlNode {' 'safe_html cannot expose script/style node constructors'
+check_rejection "style" 'pub static fnc style(string code): HtmlNode {' 'safe_html cannot expose script/style node constructors'
 check_rejection "alias-attr" 'self.attributes = attributes;' 'safe HTML nodes must not retain caller array aliases'
 check_rejection "alias-child" 'self.children = children;' 'safe HTML nodes must not retain caller array aliases'
 
