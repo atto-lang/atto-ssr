@@ -107,15 +107,23 @@ impl Fixture {
     }
 
     fn run_setup(&self, fail: bool) -> Output {
+        self.run_setup_with_offline(fail, None)
+    }
+
+    fn run_setup_with_offline(&self, fail: bool, offline: Option<&str>) -> Output {
         let old_path = env::var("PATH").unwrap_or_default();
-        Command::new("bash")
+        let mut command = Command::new("bash");
+        command
             .arg("scripts/setup.sh")
             .current_dir(&self.root)
             .env("PATH", format!("{}:{old_path}", self.bin.display()))
             .env("SETUP_ARGS", self.root.join("args"))
             .env("SETUP_FAIL", if fail { "1" } else { "0" })
-            .output()
-            .unwrap()
+            .env_remove("ORESLANG_OFFLINE");
+        if let Some(value) = offline {
+            command.env("ORESLANG_OFFLINE", value);
+        }
+        command.output().unwrap()
     }
 }
 
@@ -211,4 +219,72 @@ fn symlinked_compiler_target_does_not_run_maven_clean() {
     assert_eq!(fs::read_to_string(outside.join("keep.txt")).unwrap(), "keep");
     assert!(!f.root.join("args").exists(), "Maven clean must not run");
     assert!(!f.launcher.exists(), "old launcher must be invalidated");
+}
+
+#[test]
+fn offline_prepopulated_exact_tree_builds_without_origin_clone() {
+    let f = Fixture::new();
+    let result = f.run_setup_with_offline(false, Some("1"));
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let out = String::from_utf8_lossy(&result.stdout);
+    assert!(out.contains("compiler snapshot: pinned_ref="));
+    assert!(out.contains(&format!("tree={}", f.git(&["rev-parse", "HEAD^{tree}"]))));
+    assert!(f.launcher.exists());
+}
+
+#[test]
+fn offline_missing_compiler_fails_closed_before_maven() {
+    let f = Fixture::new();
+    fs::remove_dir_all(&f.compiler).unwrap();
+    let result = f.run_setup_with_offline(false, Some("1"));
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("offline compiler checkout missing"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not run");
+}
+
+#[test]
+fn invalid_offline_setting_fails_closed_before_maven() {
+    let f = Fixture::new();
+    let result = f.run_setup_with_offline(false, Some("unexpected"));
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("ORESLANG_OFFLINE must be 0 or 1"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not run");
+}
+
+#[test]
+fn same_tree_mirror_commit_is_accepted_with_provenance() {
+    let f = Fixture::new();
+    let source_commit = f.git(&["rev-parse", "HEAD"]);
+    f.git(&[
+        "-c", "user.name=Fixture",
+        "-c", "user.email=fixture@example.invalid",
+        "commit", "--allow-empty", "-qm", "different commit, identical Git tree",
+    ]);
+    let copied_commit = f.git(&["rev-parse", "HEAD"]);
+    assert_ne!(copied_commit, source_commit);
+    let result = f.run_setup_with_offline(false, Some("1"));
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let out = String::from_utf8_lossy(&result.stdout);
+    assert!(out.contains(&format!("pinned_ref={source_commit}")));
+    assert!(out.contains(&format!("checkout_ref={copied_commit}")));
+    assert!(f.launcher.exists());
+}
+
+#[test]
+fn clean_but_different_tree_is_rejected_before_build() {
+    let f = Fixture::new();
+    fs::write(f.compiler.join("pom.xml"), "<project changed='true'/>").unwrap();
+    f.git(&["add", "pom.xml"]);
+    f.git(&[
+        "-c", "user.name=Fixture",
+        "-c", "user.email=fixture@example.invalid",
+        "commit", "-qm", "different Git tree",
+    ]);
+    let result = f.run_setup_with_offline(false, Some("1"));
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("compiler source tree does not match"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not run");
 }
