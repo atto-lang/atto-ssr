@@ -1,0 +1,6 @@
+import class LocalPath from '../../src/url';
+pub routine main(): void {
+  val forged = new LocalPath("//evil");
+  stdio.println(forged.render());
+  return;
+}
