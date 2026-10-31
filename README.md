@@ -95,6 +95,29 @@ The older `*_trusted` helpers remain explicit escape hatches.
 These are syntax boundaries, not route authorization, CSRF protection,
 or guarantees about actual HTTP transport. See `docs/SECURITY.md`.
 
+## Closed, typed HTML tree (opt-in)
+
+For safe data-first HTML composition without manual escaping:
+
+```oreslang
+import module safe_html from './src/safe_html';
+import class HtmlNode from './src/safe_html';
+import class SafeAttr from './src/safe_html';
+
+val page = HtmlNode.div(
+  [SafeAttr.id("app"), SafeAttr.title("a\" onclick=\"bad()")],
+  [HtmlNode.text("<script>alert(1)</script>")]
+);
+val string html = safe_html.render(page);
+```
+
+The ordinary text is encoded **during serialization**, and the attribute
+cannot escape its quoted context. Fixed tag factories and a private
+constructor keep arbitrary tags and raw code out of this opt-in path.
+The default legacy `Markup` API still supports explicit raw trust.
+`HtmlNode` is currently eager, unbounded, and not proven transitively
+immutable: see `docs/DESIGN.md` and `docs/STREAMING_CONTRACT.md`.
+
 ## Design principles
 
 1. **Native Oreslang semantics.** Rendering policy lives in `.ores` files.
