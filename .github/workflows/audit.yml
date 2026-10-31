@@ -23,6 +23,8 @@ jobs:
             bash -n "$script"
           done
       - run: bash scripts/audit.sh
+      - name: Reject unsafe guest fixture inventories
+        run: bash scripts/fixture-inventory-contracts.sh
   render-contracts:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
