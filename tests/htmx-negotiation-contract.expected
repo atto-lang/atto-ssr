@@ -1,0 +1,10 @@
+200
+text/html; charset=utf-8
+HX-Request, HX-History-Restore-Request
+<!doctype html><html><head><title>SSR</title></head><body><div id="content">Full &lt;unsafe&gt; &amp;</div></body></html>
+<div id="content">Fragment &quot;&lt;&amp;&#39;</div>
+<!doctype html><html><head><title>SSR</title></head><body><div id="content">Full &lt;unsafe&gt; &amp;</div></body></html>
+<!doctype html><html><head><title>SSR</title></head><body><div id="content">Full &lt;unsafe&gt; &amp;</div></body></html>
+true
+false
+<section hx-history="false" hx-disable>Private &lt;data&gt;</section>
