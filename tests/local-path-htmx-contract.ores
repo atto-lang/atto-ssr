@@ -32,6 +32,8 @@ pub routine main(): void {
     ]),
     markup.text("actions")
   )));
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_err());
+  stdio.println(url.local_path(["a","b","c","d","e","f","g","h"]).is_err());
   stdio.println(url.local_path(["."]).is_err());
   stdio.println(url.local_path([".."]).is_err());
   stdio.println(url.local_path(["a/b"]).is_err());
@@ -42,6 +44,7 @@ pub routine main(): void {
   stdio.println(url.local_path(["a#frag"]).is_err());
   stdio.println(url.local_path(["a b"]).is_err());
   stdio.println(url.local_path(["é"]).is_err());
+  stdio.println(url.local_path(["\\u0000"]).is_err());
   stdio.println(url.local_path([""]).is_err());
   stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_err());
   stdio.println(url.local_path(["a","b","c","d","e","f","g","h","i"]).is_err());
