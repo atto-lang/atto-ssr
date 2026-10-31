@@ -1,7 +1,9 @@
-<!doctype html><html><head><title>Counter</title></head><body><main hx-history="false"><form id="counter" action="/counter/increment" method="post" hx-post="/counter/increment" hx-target="#counter" hx-swap="outerHTML"><input type="hidden" name="csrf_token" value="csrf-5"><p>5</p><button type="submit">Increment</button></form></main></body></html>
-<form id="counter" action="/counter/increment" method="post" hx-post="/counter/increment" hx-target="#counter" hx-swap="outerHTML"><input type="hidden" name="csrf_token" value="csrf-5"><p>5</p><button type="submit">Increment</button></form>
 true
 true
 true
 true
-private, no-store
+true
+true
+true
+true
+true
