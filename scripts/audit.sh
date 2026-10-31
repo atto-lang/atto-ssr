@@ -93,4 +93,12 @@ for required in 'return render_with_limits(node, max_depth, 4096);' 'consumed = 
   fi
 done
 
+# Every guarded rendering entrypoint must delegate to a capped
+# attribute-descriptor preflight, not only the node/depth check.
+for required in 'return render_with_resource_limits(node, max_depth, max_nodes, 4096);' 'pub fnc render_with_resource_limits(HtmlNode node, int max_depth, int max_nodes, int max_attrs)' 'max_attrs < 0 || max_attrs > 4096' 'count_attrs_with_limits(max_depth, max_attrs)' 'remaining_attrs - consumed' 'consumed = consumed + child_count.unwrap();'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML attribute admission invariant missing: $required"
+  fi
+done
+
 echo "audit: native SSR invariants passed"
