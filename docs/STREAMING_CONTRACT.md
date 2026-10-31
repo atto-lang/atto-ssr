@@ -9,9 +9,11 @@ scheduler proof or native Oreslang guest receipt exists in this PR. Current
 A closed `HtmlNode` / `SafeAttr` tree now exists in `src/safe_html.ores`.
 It provides serializer-side escaping for fixed tag/attribute contexts,
 without exposing raw node constructors. The **implementation still renders
-eagerly to a string**. Its child/attribute arrays are not proven to own
-immutable snapshots, and the serializer does not enforce byte/depth/memory
-budgets, channel backpressure, tenant ownership, or cancellation. No native
+eagerly to a string**. Its constructor now copies input child and attribute arrays, with
+unexecuted source-level mutation-isolation fixtures. An opt-in depth preflight
+rejects excessive nesting before eager rendering; this is **not** a UTF-8
+byte, allocation, node-count or overall memory quota. The serializer still
+does not implement backpressure, tenant/actor ownership or cancellation. No native
 guest evidence or transport proof has been recorded. The streaming API must
 solve ownership and resource accounting before claiming these properties.
 
