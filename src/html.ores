@@ -2,6 +2,8 @@ import module markup from './markup';
 import class Markup from './markup';
 import class Stylesheet from './css';
 import module css from './css';
+import class LocalPath from './url';
+import module url from './url';
 
 // Serialized HTML attributes.
 //
@@ -85,6 +87,16 @@ define module html as
 
   pub fnc href_trusted(string value): Attrs {
     return attr_value_trusted("href", value);
+  }
+
+  // LocalPath has a private constructor and a narrow ASCII slug grammar.
+  // It restricts URL syntax, not route authorization or method/CSRF policy.
+  pub fnc href_local(LocalPath path): Attrs {
+    return attr_value_trusted("href", url.render(path));
+  }
+
+  pub fnc action_local(LocalPath path): Attrs {
+    return attr_value_trusted("action", url.render(path));
   }
 
   pub fnc action_trusted(string value): Attrs {
