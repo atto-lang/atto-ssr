@@ -136,7 +136,11 @@ provision **both** independent source trees, not only the SSR application tree:
 3. Execute `ORESLANG_OFFLINE=1 bash scripts/setup.sh`, followed by the
    complete positive/negative guest suite. The setup must **never** fall back
    to cloning a private source across organizations when the compiler checkout
-   is absent. Invalid offline settings fail closed.
+   is absent. Invalid offline settings fail closed. Offline mode passes `-o`
+   to Maven as well, so dependency/plugin resolution must succeed from the
+   already-provisioned local Maven repository. This rejects missing artifacts
+   rather than silently fetching them. It is not, by itself, an OS-level
+   network sandbox or proof that arbitrary Maven plugins cannot open sockets.
 4. Capture the original head SHA/tree, mirrored head/tree, pinned compiler
    revision, actual compiler mirror commit/tree, workflow run attempt,
    job/step IDs, exit codes, and test outputs. Check the exact SHA again before
