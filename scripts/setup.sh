@@ -77,6 +77,19 @@ if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
 fi
 mvn -B -ntp -q "${maven_mode[@]}" -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
   -Dmdep.outputFile="$root/.work/classpath.txt"
+# A zero-exit Maven process is not proof that the intended compiler exists.
+# Refuse to publish a launcher which cannot read its dependency classpath or
+# load the exact main class it is configured to execute. This also protects
+# against mock/synthetic builds being mistakenly promoted as native evidence.
+if [[ -L "$root/.work/classpath.txt" || ! -f "$root/.work/classpath.txt" || ! -s "$root/.work/classpath.txt" ]]; then
+  echo "compiler build did not produce a nonempty regular classpath file" >&2
+  exit 65
+fi
+entry="$source_dir/target/classes/dev/oreslang/launcher/OresMain.class"
+if [[ -L "$entry" || ! -f "$entry" || ! -s "$entry" ]]; then
+  echo "compiler build did not produce the expected OresMain class" >&2
+  exit 65
+fi
 launcher="$(mktemp "$root/.work/.ores.XXXXXX")"
 trap 'rm -f "$launcher"' EXIT
 cat > "$launcher" <<'RUNNER'
