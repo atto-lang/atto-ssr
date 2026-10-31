@@ -77,4 +77,12 @@ if grep -nE 'self\\.(attributes|children)[[:space:]]*=[[:space:]]*(attributes|ch
   fail "safe HTML nodes must not retain caller array aliases"
 fi
 
+# Prevent removing the typed-tree admission ceilings while retaining
+# the API and an apparently successful unbounded rendering path.
+for required in 'pub fnc render_with_limits(HtmlNode node, int max_depth, int max_nodes)' 'max_depth > 64' 'max_nodes > 4096' 'remaining_nodes - consumed' 'return Ok(checked.render());'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML depth/node admission guard missing: $required"
+  fi
+done
+
 echo "audit: native SSR invariants passed"
