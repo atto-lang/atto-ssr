@@ -78,9 +78,7 @@ the already-constructed node's child/attribute membership. This behavior
 has a compiler-backed positive fixture but has **not yet been executed**.
 It does not prove runtime deep ownership across actor boundaries. The opt-in
 `safe_html.render_with_depth_limit(node, max_depth)` performs a fail-closed
-preflight over the fixed tree before eager serialization. This constrains
-nesting depth but **does not bound total output bytes, memory, or node count**. Rendering remains
-synchronous and eager with repeated string concatenation. Bounded actor-native
+preflight over the fixed tree before eager serialization. This constrains nesting depth to an upper ceiling of 64, and delegates to a preflight that also rejects more than 4096 rendered node occurrences. The separate `safe_html.render_with_limits(node, max_depth, max_nodes)` accepts smaller budgets, counts repeated child references on every rendered occurrence, and rejects before returning HTML. These controls do **not** bound the UTF-8 byte length of text/attributes, construction-time allocations, or eager rendering's intermediate memory. Rendering remains synchronous and eager with repeated string concatenation. Bounded actor-native
 streaming, scheduler ownership proof and capacity controls remain pending.
 
 ## Why not a template DSL first?
