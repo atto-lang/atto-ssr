@@ -288,3 +288,22 @@ fn clean_but_different_tree_is_rejected_before_build() {
     assert!(!f.launcher.exists());
     assert!(!f.root.join("args").exists(), "Maven must not run");
 }
+
+#[test]
+fn offline_mode_forces_maven_offline_resolution() {
+    let f = Fixture::new();
+    let result = f.run_setup_with_offline(false, Some("1"));
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let args = fs::read_to_string(f.root.join("args")).unwrap();
+    assert!(args.lines().any(|arg| arg == "-o"), "Maven must not resolve from network");
+    assert!(f.launcher.exists());
+}
+
+#[test]
+fn default_mode_preserves_online_maven_resolution() {
+    let f = Fixture::new();
+    let result = f.run_setup(false);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let args = fs::read_to_string(f.root.join("args")).unwrap();
+    assert!(!args.lines().any(|arg| arg == "-o"), "default mode must preserve Maven behavior");
+}
