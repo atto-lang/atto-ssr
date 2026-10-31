@@ -27,6 +27,11 @@ return render_with_limits(node, max_depth, 4096);
 consumed = consumed + child_count.unwrap();
 if remaining_depth < 1 then
 if remaining_nodes < 1 then
+return render_with_resource_limits(node, max_depth, max_nodes, 4096);
+pub fnc render_with_resource_limits(HtmlNode node, int max_depth, int max_nodes, int max_attrs)
+max_attrs < 0 || max_attrs > 4096
+count_attrs_with_limits(max_depth, max_attrs)
+remaining_attrs - consumed
 ORES
 cp "$tmp/src/safe_html.ores" "$tmp/baseline.ores"
 bash "$tmp/scripts/audit.sh" > "$tmp/output" 2>&1 || {
