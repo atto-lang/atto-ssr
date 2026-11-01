@@ -25,7 +25,10 @@ jobs:
       - run: bash scripts/audit.sh
       - name: Reject unsafe guest fixture inventories
         run: bash scripts/fixture-inventory-contracts.sh
+      - name: Validate current branch fixture inventory
+        run: bash scripts/test.sh --inventory-only
   render-contracts:
+    needs: audit
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
