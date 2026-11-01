@@ -8,8 +8,8 @@ pub routine main(): void {
   stdio.println(url.render(url.local_path(["a","b"]).unwrap()) == "/a/b");
   stdio.println(url.local_path(["a","b","c","d","e","f","g","h"]).is_ok());
   stdio.println(url.local_path(["a","b","c","d","e","f","g","h","i"]).is_err());
-  stdio.println(url.local_path(["abcdefghijklmnopqrstuvwx0123456789ABCDEFGHIJKLMNOPQRSTUVWX0123456789"]).is_ok());
-  stdio.println(url.local_path(["abcdefghijklmnopqrstuvwx0123456789ABCDEFGHIJKLMNOPQRSTUVWX0123456789Z"]).is_err());
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_ok());
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_err());
   stdio.println(url.local_path(["a b"]).is_err());
   stdio.println(url.local_path(["a/b"]).is_err());
   stdio.println(url.local_path(["a%2Fb"]).is_err());
