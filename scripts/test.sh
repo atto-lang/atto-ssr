@@ -22,7 +22,7 @@ negative=("$root"/tests/reject/*.ores)
 negative_expected=("$root"/tests/reject/*.err)
 (( ${#positive[@]} > 0 && ${#negative[@]} > 0 )) || fail_inventory "empty positive or negative inventory"
 for source in "$root"/examples/*.ores "${positive[@]}" "${negative[@]}"; do
-  [[ -f "$source" && ! -L "$source" ]] || fail_inventory "unsafe fixture source: $source"
+  [[ -f "$source" && -s "$source" && ! -L "$source" ]] || fail_inventory "missing, empty or unsafe fixture source: $source"
 done
 for source in "${positive[@]}"; do
   expected="${source%.ores}.expected"
