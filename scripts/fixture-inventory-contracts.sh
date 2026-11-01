@@ -163,4 +163,36 @@ ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
 }
 checks=$((checks + 1))
 
+# The audit and preflight scripts are executable inputs and cannot be
+# swapped through symlinks or removed without failing before guest dispatch.
+new_fixture
+mv "$fake/scripts/audit.sh" "$fake/saved-audit"
+ln -s "$fake/saved-audit" "$fake/scripts/audit.sh"
+assert_rejected_before_guest "symlinked audit helper"
+
+new_fixture
+rm "$fake/scripts/check.sh"
+assert_rejected_before_guest "missing compiler check helper"
+
+new_fixture
+mv "$fake/tests/reject/bad.ores" "$fake/saved-negative"
+ln -s "$fake/saved-negative" "$fake/tests/reject/bad.ores"
+assert_rejected_before_guest "symlinked negative source"
+
+new_fixture
+printf 'EXTRA_DIAGNOSTIC\n' > "$fake/tests/reject/unused.err"
+assert_rejected_before_guest "orphan negative diagnostic"
+
+new_fixture
+rm -f "$fake/calls"
+mv "$fake/scripts/check.sh" "$fake/saved-check"
+ln -s "$fake/saved-check" "$fake/scripts/check.sh"
+status=0
+ORESLANG_BIN="$tmp/no-compiler" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "inventory-only admitted symlinked helper" >&2; exit 1;
+}
+checks=$((checks + 1))
+
 echo "fixture inventory: $checks source-only contract cases passed"
