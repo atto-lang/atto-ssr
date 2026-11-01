@@ -29,13 +29,27 @@ fnc inert_aria_attribute_escapes_ampersand(): TestOutcome {
     "HTML attribute serialization must escape ampersands");
 }
 
+fnc srcdoc_attribute_requires_dedicated_policy(): TestOutcome {
+  return expect_true(html.attr("srcdoc", "<script>run()</script>").is_err(),
+    "srcdoc is script-capable and must be rejected by inert-attribute API");
+}
+
+fnc id_attribute_escapes_angle_brackets(): TestOutcome {
+  val result = html.attr("id", "<img>");
+  if result.is_err(); then return fail("safe inert ID rejected"); fi
+  return expect_equal_string(html.attrs_render(result.unwrap()),
+    " id=\"&lt;img&gt;\"", "HTML element markup must not enter an attribute value");
+}
+
 pub routine main(): void {
   val TestSuite suite = new TestSuite("ssr", arr[
     new TestCase("rejects_dynamic_href_attribute", rejects_dynamic_href_attribute, false, ""),
     new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, ""),
     new TestCase("dynamic_event_attribute_denied", dynamic_event_attribute_denied, false, ""),
     new TestCase("untrusted_style_attribute_is_denied", untrusted_style_attribute_is_denied, false, ""),
-    new TestCase("inert_aria_attribute_escapes_ampersand", inert_aria_attribute_escapes_ampersand, false, "")
+    new TestCase("inert_aria_attribute_escapes_ampersand", inert_aria_attribute_escapes_ampersand, false, ""),
+    new TestCase("srcdoc_attribute_requires_dedicated_policy", srcdoc_attribute_requires_dedicated_policy, false, ""),
+    new TestCase("id_attribute_escapes_angle_brackets", id_attribute_escapes_angle_brackets, false, "")
   ]);
   val TestOptions options = new TestOptions("", false, true);
   val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
