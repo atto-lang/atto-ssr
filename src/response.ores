@@ -1,5 +1,7 @@
 import class Markup from './markup';
 import module markup from './markup';
+import class LocalPath from './url';
+import module url from './url';
 
 // Axum-like response boundary: rendering stays separate from the HTTP server.
 // An Oreslang HTTP/router implementation can adapt this small value directly.
@@ -7,6 +9,16 @@ type HtmlResponse = {
   status: int,
   content_type: string,
   body: string
+};
+
+// Redirects intentionally have no HTML body and no Content-Type.
+// The HTTP adapter MUST serialize Location and Cache-Control as actual wire
+// headers. A typed LocalPath is safe syntax, not route/CSRF authorization.
+type LocalRedirect = {
+  status: int,
+  location: string,
+  body: string,
+  cache_control: string
 };
 
 define module response as
@@ -47,6 +59,24 @@ define module response as
 
   pub fnc not_found(Markup body): HtmlResponse {
     return build(404, body);
+  }
+
+  // Use only *after* authorization, CSRF validation and a successful actor
+  // mutation for the ordinary HTML form POST-to-GET fallback. Never construct
+  // a redirect from a caller-provided URL or infer that a redirect authorizes
+  // a state change.
+  pub fnc see_other_local(LocalPath target): LocalRedirect {
+    return struct{
+      status: int,
+      location: string,
+      body: string,
+      cache_control: string
+    }{
+      status: 303,
+      location: url.render(target),
+      body: "",
+      cache_control: "private, no-store"
+    };
   }
 
 end
