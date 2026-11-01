@@ -1,0 +1,24 @@
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "std/testing";
+import fnc expect_true, expect_false, expect_equal_int, expect_equal_string, run_suite, require_success, fail from "std/testing";
+import module html from "../src/html";
+import module markup from "../src/markup";
+fnc rejects_dynamic_href_attribute(): TestOutcome {
+  return expect_true(html.attr("href", "javascript:alert(1)").is_err(),
+    "dynamic URL attributes require a dedicated context policy");
+}
+fnc title_attribute_escapes_markup(): TestOutcome {
+  val value = html.attr("title", "<script>");
+  if value.is_err(); then return fail("safe title attribute was rejected"); fi
+  return expect_equal_string(html.attrs_render(value.unwrap()), " title=\"&lt;script&gt;\"",
+    "inert attribute values must be HTML-escaped");
+}
+pub routine main(): void {
+  val TestSuite suite = new TestSuite("ssr", arr[
+    new TestCase("rejects_dynamic_href_attribute", rejects_dynamic_href_attribute, false, ""),
+    new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, "")
+  ]);
+  val TestOptions options = new TestOptions("", false, true);
+  val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
+  require_success(rt borrow summary);
+  return;
+}
