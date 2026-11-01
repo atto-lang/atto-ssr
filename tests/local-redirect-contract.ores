@@ -1,0 +1,23 @@
+import module url from '../src/url';
+import module response from '../src/response';
+
+// A 303 response must carry only a typed same-origin Location. The caller
+// must already have passed authentication, CSRF and actor-mutation gates.
+pub routine main(): void {
+  val counter = url.local_path(["counter"]).unwrap();
+  val redirect = response.see_other_local(counter);
+  stdio.println(redirect.status == 303);
+  stdio.println(redirect.location == "/counter");
+  stdio.println(redirect.body == "");
+  stdio.println(redirect.cache_control == "private, no-store");
+
+  val nested = response.see_other_local(
+    url.local_path(["counter", "increment"]).unwrap()
+  );
+  stdio.println(nested.location == "/counter/increment");
+  stdio.println(nested.body == "");
+  stdio.println(url.local_path(["https:", "evil.example"]).is_err());
+  stdio.println(url.local_path(["counter?next=evil"]).is_err());
+  stdio.println(url.local_path([".."]).is_err());
+  return;
+}
