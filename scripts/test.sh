@@ -21,7 +21,7 @@ for source in "$root"/examples/*.ores "${positive[@]}" "${negative[@]}"; do
 done
 for source in "${positive[@]}"; do
   expected="${source%.ores}.expected"
-  [[ -f "$expected" && ! -L "$expected" ]] || fail_inventory "missing or unsafe positive expectation: $expected"
+  [[ -f "$expected" && ! -L "$expected" && -s "$expected" ]] || fail_inventory "missing, empty or unsafe positive expectation: $expected"
 done
 for expected in "${positive_expected[@]}"; do
   source="${expected%.expected}.ores"
