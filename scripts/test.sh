@@ -16,8 +16,6 @@ positive_expected=("$root"/tests/*.expected)
 negative=("$root"/tests/reject/*.ores)
 negative_expected=("$root"/tests/reject/*.err)
 (( ${#positive[@]} > 0 && ${#negative[@]} > 0 )) || fail_inventory "empty positive or negative inventory"
-(( ${#positive[@]} == ${#positive_expected[@]} )) || fail_inventory "positive fixture/expectation count mismatch"
-(( ${#negative[@]} == ${#negative_expected[@]} )) || fail_inventory "negative fixture/expectation count mismatch"
 for source in "$root"/examples/*.ores "${positive[@]}" "${negative[@]}"; do
   [[ -f "$source" && ! -L "$source" ]] || fail_inventory "unsafe fixture source: $source"
 done
@@ -37,6 +35,10 @@ for expected in "${negative_expected[@]}"; do
   source="${expected%.err}.ores"
   [[ -f "$source" && ! -L "$source" ]] || fail_inventory "orphan negative expectation: $expected"
 done
+# Pair checks above identify the exact missing/orphaned source. Keep a
+# count invariant as a final defense without masking the actionable path.
+(( ${#positive[@]} == ${#positive_expected[@]} )) || fail_inventory "positive fixture/expectation count mismatch"
+(( ${#negative[@]} == ${#negative_expected[@]} )) || fail_inventory "negative fixture/expectation count mismatch"
 
 # Permit inexpensive CI admission to verify the exact fixture inventory
 # before downloading GraalVM or compiling the pinned Oreslang compiler.
