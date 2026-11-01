@@ -128,4 +128,39 @@ ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
 [[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted symlink" >&2; exit 1; }
 checks=$((checks + 1))
 
+new_fixture
+: > "$fake/tests/good.expected"
+assert_rejected_before_guest "empty positive oracle"
+
+new_fixture
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --unsupported-mode >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 64 && ! -e "$fake/calls" ]] || {
+  echo "unknown test runner argument admitted" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+rm -f "$fake/calls"
+ORESLANG_BIN="$tmp/missing-compiler" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr"
+grep -q '1 positive and 1 negative pairs verified' "$tmp/stdout"
+[[ ! -e "$fake/calls" ]] || {
+  echo "inventory-only attempted missing compiler" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+: > "$fake/tests/good.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "inventory-only admitted empty positive oracle" >&2; exit 1;
+}
+checks=$((checks + 1))
+
 echo "fixture inventory: $checks source-only contract cases passed"
