@@ -195,4 +195,39 @@ ORESLANG_BIN="$tmp/no-compiler" CALL_LOG="$fake/calls" \
 }
 checks=$((checks + 1))
 
+# Empty source files must never count as executed guest coverage.
+new_fixture
+: > "$fake/tests/good.ores"
+assert_rejected_before_guest "empty positive source"
+
+new_fixture
+: > "$fake/tests/reject/bad.ores"
+assert_rejected_before_guest "empty negative source"
+
+new_fixture
+: > "$fake/examples/demo.ores"
+assert_rejected_before_guest "empty example source"
+
+new_fixture
+: > "$fake/tests/good.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$tmp/not-installed" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "empty positive source passed inventory-only admission" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+: > "$fake/examples/demo.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$tmp/not-installed" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "empty example source passed inventory-only admission" >&2; exit 1;
+}
+checks=$((checks + 1))
+
 echo "fixture inventory: $checks source-only contract cases passed"
