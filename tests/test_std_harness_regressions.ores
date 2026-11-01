@@ -12,10 +12,15 @@ fnc title_attribute_escapes_markup(): TestOutcome {
   return expect_equal_string(html.attrs_render(value.unwrap()), " title=\"&lt;script&gt;\"",
     "inert attribute values must be HTML-escaped");
 }
+fnc dynamic_event_attribute_denied(): TestOutcome {
+  return expect_true(html.attr("onclick", "alert(1)").is_err(),
+    "untrusted event-handler attributes must fail closed");
+}
 pub routine main(): void {
   val TestSuite suite = new TestSuite("ssr", arr[
     new TestCase("rejects_dynamic_href_attribute", rejects_dynamic_href_attribute, false, ""),
-    new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, "")
+    new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, ""),
+    new TestCase("dynamic_event_attribute_denied", dynamic_event_attribute_denied, false, "")
   ]);
   val TestOptions options = new TestOptions("", false, true);
   val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
