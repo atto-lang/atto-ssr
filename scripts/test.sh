@@ -38,6 +38,18 @@ for expected in "${negative_expected[@]}"; do
   [[ -f "$source" && ! -L "$source" ]] || fail_inventory "orphan negative expectation: $expected"
 done
 
+# Permit inexpensive CI admission to verify the exact fixture inventory
+# before downloading GraalVM or compiling the pinned Oreslang compiler.
+# This mode MUST NEVER invoke a guest, audit command, or compiler.
+if [[ "$#" -gt 1 || ( "$#" -eq 1 && "$1" != "--inventory-only" ) ]]; then
+  echo "usage: scripts/test.sh [--inventory-only]" >&2
+  exit 64
+fi
+if [[ "$#" -eq 1 ]]; then
+  printf 'fixture inventory: %s positive and %s negative pairs verified\n' "${#positive[@]}" "${#negative[@]}"
+  exit 0
+fi
+
 bash "$root/scripts/audit.sh"
 bash "$root/scripts/check.sh"
 
