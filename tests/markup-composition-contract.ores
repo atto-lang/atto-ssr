@@ -1,0 +1,17 @@
+import module markup from '../src/markup';
+
+// Native guest assertions cover escaping and safe markup composition.
+// No raw user-controlled HTML is emitted to the test log.
+pub routine main(): void {
+  val data = markup.text("&<>");
+  stdio.println(markup.render(data) == "&amp;&lt;&gt;");
+  stdio.println(markup.render(markup.text("<script>")) == "&lt;script&gt;");
+  stdio.println(markup.render(markup.text("&amp;")) == "&amp;amp;");
+  stdio.println(markup.render(markup.empty()) == "");
+  stdio.println(markup.render(markup.when(false, data)) == "");
+  stdio.println(markup.render(markup.when(true, data)) == "&amp;&lt;&gt;");
+  val together = markup.concat(markup.text("<a>"), markup.text("&"));
+  stdio.println(markup.render(together) == "&lt;a&gt;&amp;");
+  stdio.println(markup.render(markup.join([markup.text("A"), markup.text("<"), markup.text("B")])) == "A&lt;B");
+  return;
+}
