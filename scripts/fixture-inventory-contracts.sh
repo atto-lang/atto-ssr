@@ -90,4 +90,42 @@ mv "$fake/tests/reject" "$fake/reject-saved"
 ln -s "$fake/reject-saved" "$fake/tests/reject"
 assert_rejected_before_guest "symlinked negative directory"
 
+# The real CI must gate the expensive compiler job on this mode. Check both
+# success and negative inventories WITHOUT invoking any mock guest.
+new_fixture
+rm -f "$fake/calls"
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr"
+grep -q '1 positive and 1 negative pairs verified' "$tmp/stdout"
+[[ ! -e "$fake/calls" ]] || { echo "inventory-only executed guest" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+rm "$fake/tests/good.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted absent expectation" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+printf 'orphan\n' > "$fake/tests/orphan.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted orphan" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+mv "$fake/tests/good.ores" "$fake/guest-source"
+ln -s "$fake/guest-source" "$fake/tests/good.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted symlink" >&2; exit 1; }
+checks=$((checks + 1))
+
 echo "fixture inventory: $checks source-only contract cases passed"
