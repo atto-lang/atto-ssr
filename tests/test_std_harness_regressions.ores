@@ -16,11 +16,26 @@ fnc dynamic_event_attribute_denied(): TestOutcome {
   return expect_true(html.attr("onclick", "alert(1)").is_err(),
     "untrusted event-handler attributes must fail closed");
 }
+fnc untrusted_style_attribute_is_denied(): TestOutcome {
+  return expect_true(html.attr("style", "background:url(x)").is_err(),
+    "style attributes require dedicated CSS policy");
+}
+
+fnc inert_aria_attribute_escapes_ampersand(): TestOutcome {
+  val result = html.attr("aria-label", "A&B");
+  if result.is_err(); then return fail("safe aria-label rejected"); fi
+  return expect_equal_string(html.attrs_render(result.unwrap()),
+    " aria-label=\"A&amp;B\"",
+    "HTML attribute serialization must escape ampersands");
+}
+
 pub routine main(): void {
   val TestSuite suite = new TestSuite("ssr", arr[
     new TestCase("rejects_dynamic_href_attribute", rejects_dynamic_href_attribute, false, ""),
     new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, ""),
-    new TestCase("dynamic_event_attribute_denied", dynamic_event_attribute_denied, false, "")
+    new TestCase("dynamic_event_attribute_denied", dynamic_event_attribute_denied, false, ""),
+    new TestCase("untrusted_style_attribute_is_denied", untrusted_style_attribute_is_denied, false, ""),
+    new TestCase("inert_aria_attribute_escapes_ampersand", inert_aria_attribute_escapes_ampersand, false, "")
   ]);
   val TestOptions options = new TestOptions("", false, true);
   val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
