@@ -11,6 +11,11 @@ shopt -s nullglob
 for dir in "$root/examples" "$root/tests" "$root/tests/reject"; do
   [[ -d "$dir" && ! -L "$dir" ]] || fail_inventory "unsafe fixture directory: $dir"
 done
+# The post-inventory checks are executable inputs, too. Fail before any
+# guest dispatch rather than trusting a redirected or absent helper script.
+for helper in "$root/scripts/audit.sh" "$root/scripts/check.sh"; do
+  [[ -f "$helper" && ! -L "$helper" ]] || fail_inventory "missing or unsafe runner helper: $helper"
+done
 positive=("$root"/tests/*.ores)
 positive_expected=("$root"/tests/*.expected)
 negative=("$root"/tests/reject/*.ores)
