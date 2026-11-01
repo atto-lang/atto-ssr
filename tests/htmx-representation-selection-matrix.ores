@@ -1,0 +1,47 @@
+import module markup from '../src/markup';
+import module htmx_http from '../src/htmx_http';
+import module htmx_request from '../src/htmx_request';
+
+// HEAD suppression must not alter representation selection or Vary metadata.
+pub routine main(): void {
+  val full_page = markup.text("full <doc>");
+  val fragment = markup.text("fragment & safe");
+  stdio.println(htmx_request.wants_fragment(false, false) == false);
+  stdio.println(htmx_request.wants_fragment(true, false) == true);
+  stdio.println(htmx_request.wants_fragment(false, true) == false);
+  stdio.println(htmx_request.wants_fragment(true, true) == false);
+
+  val direct = htmx_http.reply_checked(
+    false, false, "", false, false, "", false, full_page, fragment
+  ).unwrap();
+  stdio.println(direct.body == markup.render(full_page));
+  stdio.println(direct.representation_body == direct.body);
+
+  val hx = htmx_http.reply_checked(
+    true, false, "true", false, false, "", false, full_page, fragment
+  ).unwrap();
+  stdio.println(hx.body == markup.render(fragment));
+  stdio.println(hx.representation_body == hx.body);
+
+  val restored = htmx_http.reply_checked(
+    true, false, "true", true, false, "true", false, full_page, fragment
+  ).unwrap();
+  stdio.println(restored.body == direct.body);
+  stdio.println(restored.cache_control == "private, no-store");
+
+  val head = htmx_http.reply_checked(
+    true, false, "true", false, false, "", true, full_page, fragment
+  ).unwrap();
+  stdio.println(head.body == "");
+  stdio.println(head.representation_body == hx.body);
+  stdio.println(head.status == 200);
+  stdio.println(head.vary == "HX-Request, HX-History-Restore-Request");
+
+  stdio.println(htmx_http.reply_checked(
+    false, false, "true", false, false, "", true, full_page, fragment
+  ).is_err());
+  stdio.println(htmx_http.reply_checked(
+    true, false, "true", true, true, "false", true, full_page, fragment
+  ).is_err());
+  return;
+}
