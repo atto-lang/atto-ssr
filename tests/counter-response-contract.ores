@@ -1,0 +1,43 @@
+import module counter_response from '../src/counter_response';
+
+// These invariants cover HTML partitioning and HEAD without logging a
+// CSRF-bearing rendered document into CI output.
+pub routine main(): void {
+  val direct = counter_response.get_or_head(
+    false, false, "",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(direct.body.replace_literal("<main hx-history=\"false\">", "") != direct.body);
+  stdio.println(direct.body.replace_literal("<form", "") != direct.body);
+
+  val fragment = counter_response.get_or_head(
+    true, false, "true",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(fragment.body.replace_literal("hx-history=\"false\"", "") != fragment.body);
+  stdio.println(fragment.body.replace_literal("<!doctype", "") == fragment.body);
+
+  val restored = counter_response.get_or_head(
+    true, false, "true",
+    true, false, "true",
+    false, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(restored.body == direct.body);
+
+  val head = counter_response.get_or_head(
+    true, false, "true",
+    false, false, "",
+    true, "5", "csrf-5"
+  ).unwrap();
+  stdio.println(head.body == "");
+  stdio.println(head.representation_body == fragment.body);
+  stdio.println(counter_response.get_or_head(
+    true, true, "true",
+    false, false, "",
+    false, "5", "csrf-5"
+  ).is_err());
+  stdio.println(direct.cache_control == "private, no-store");
+  return;
+}

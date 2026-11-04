@@ -1,0 +1,41 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+import module htmx from '../src/htmx';
+import module htmx_request from '../src/htmx_request';
+
+pub routine main(): void {
+  val full_page = html.document(
+    html.title(html.attrs_empty(), markup.text("SSR")),
+    html.div(html.id("content"), markup.text("Full <unsafe> &"))
+  );
+  val fragment = html.div(
+    html.id("content"),
+    markup.text("Fragment \"<&'")
+  );
+
+  val ordinary = htmx_request.reply(false, false, full_page, fragment);
+  val partial = htmx_request.reply(true, false, full_page, fragment);
+  val restored_hx = htmx_request.reply(true, true, full_page, fragment);
+  val restored_direct = htmx_request.reply(false, true, full_page, fragment);
+
+  stdio.println(ordinary.status);
+  stdio.println(ordinary.content_type);
+  stdio.println(ordinary.vary);
+  stdio.println(ordinary.body);
+  stdio.println(partial.body);
+  stdio.println(restored_hx.body);
+  stdio.println(restored_direct.body);
+  stdio.println(htmx_request.wants_fragment(true, false));
+  stdio.println(htmx_request.wants_fragment(true, true));
+
+  stdio.println(markup.render(
+    html.section(
+      html.attrs_join([
+        htmx.no_history_snapshot(),
+        htmx.disable_subtree()
+      ]),
+      markup.text("Private <data>")
+    )
+  ));
+  return;
+}
