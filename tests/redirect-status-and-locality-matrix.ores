@@ -1,0 +1,28 @@
+import module url from '../src/url';
+import module markup from '../src/markup';
+import module response from '../src/response';
+
+// Redirect status and no-store metadata do not grant authorization.
+pub routine main(): void {
+  val root = response.see_other_local(url.local_path([]).unwrap());
+  stdio.println(root.status == 303);
+  stdio.println(root.location == "/");
+  stdio.println(root.body == "");
+  stdio.println(root.cache_control == "private, no-store");
+
+  val nested = response.see_other_local(url.local_path(["counter", "2"]).unwrap());
+  stdio.println(nested.status == 303);
+  stdio.println(nested.location == "/counter/2");
+  stdio.println(nested.body == "");
+  stdio.println(nested.cache_control == "private, no-store");
+
+  val body = markup.text("ok");
+  stdio.println(response.with_status(200, body).is_ok());
+  stdio.println(response.with_status(303, body).is_ok());
+  stdio.println(response.with_status(199, body).is_err());
+  stdio.println(response.with_status(600, body).is_err());
+  stdio.println(response.with_status(204, body).is_err());
+  stdio.println(response.with_status(205, body).is_err());
+  stdio.println(response.with_status(304, body).is_err());
+  return;
+}

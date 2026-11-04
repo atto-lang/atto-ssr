@@ -1,0 +1,27 @@
+import module html from '../src/html';
+
+// Untrusted attributes may use only inert, explicit names.
+// Values must remain confined to one double-quoted HTML attribute.
+pub routine main(): void {
+  stdio.println(html.attr("id", "x").is_ok());
+  stdio.println(html.attr("class", "x").is_ok());
+  stdio.println(html.attr("title", "x").is_ok());
+  stdio.println(html.attr("alt", "x").is_ok());
+  stdio.println(html.attr("value", "x").is_ok());
+  stdio.println(html.attr("placeholder", "x").is_ok());
+  stdio.println(html.attr("role", "x").is_ok());
+  stdio.println(html.attr("aria-label", "x").is_ok());
+  stdio.println(html.attr("aria-description", "x").is_ok());
+  stdio.println(html.attr("aria-describedby", "x").is_ok());
+  stdio.println(html.attr("aria-labelledby", "x").is_ok());
+  stdio.println(html.attr("href", "javascript:alert(1)").is_err());
+  stdio.println(html.attr("action", "/delete").is_err());
+  stdio.println(html.attr("onclick", "alert(1)").is_err());
+  stdio.println(html.attr("style", "url(evil)").is_err());
+  stdio.println(html.attr("srcdoc", "<script>").is_err());
+  stdio.println(html.attr("hx-post", "/admin").is_err());
+  stdio.println(html.attr("data-x", "x").is_err());
+  stdio.println(html.attr("ID", "x").is_err());
+  stdio.println(html.attrs_render(html.attr("title", "x&<").unwrap()) == " title=\"x&amp;&lt;\"");
+  return;
+}

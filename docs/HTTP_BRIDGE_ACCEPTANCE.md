@@ -121,3 +121,67 @@ IDs in a pinned router snapshot.
 Source-only JS-model fixtures are **not** real Oreslang compiler, native or
 wire results. Existing zero-step GitHub Actions failures indicate runner
 admission, not a failing guest program.
+
+## Offline exact-tree compiler admission (private CI mirror)
+
+Before launching any guest code in an alternate private test organization,
+provision **both** independent source trees, not only the SSR application tree:
+
+1. Exact SSR candidate head/tree into the destination's private source branch.
+2. Compiler snapshot into `.work/compiler` in that checkout, as its own clean
+   Git repository with `HEAD^{tree}` exactly equal to `compiler-tree.txt`.
+   `compiler.lock` identifies the upstream pinned revision; a new local mirror
+   commit with identical Git tree is permitted and its actual commit SHA is
+   printed in the compiler provenance line.
+3. Execute `ORESLANG_OFFLINE=1 bash scripts/setup.sh`, followed by the
+   complete positive/negative guest suite. The setup must **never** fall back
+   to cloning a private source across organizations when the compiler checkout
+   is absent. Invalid offline settings fail closed. Offline mode passes `-o`
+   to Maven as well, so dependency/plugin resolution must succeed from the
+   already-provisioned local Maven repository. This rejects missing artifacts
+   rather than silently fetching them. It is not, by itself, an OS-level
+   network sandbox or proof that arbitrary Maven plugins cannot open sockets.
+   After Maven exits successfully, the setup also requires the actual
+   `.work/classpath.txt` file to be nonempty and regular, plus the compiled
+   `target/classes/dev/oreslang/launcher/OresMain.class` to exist and be
+   nonempty and non-symlinked. Otherwise it fails without publishing
+   `.work/ores`; Maven exit status alone is not a valid runnable-compiler
+   receipt. The host tests mock these artifacts, so even a passing host test
+   cannot substitute for a real GraalVM build and guest execution.
+   To prevent a false-positive from **ignored build outputs** left by an earlier
+   run, setup invalidates the prior classpath and `OresMain.class` before
+   invoking Maven. It rejects symlinked intermediate class-output directories
+   and the entrypoint itself **before** deleting artifacts or invoking Maven
+   clean. This is an artifact freshness guard, not a cryptographic bytecode
+   attestation; real guest execution is still required.
+4. Capture the original head SHA/tree, mirrored head/tree, pinned compiler
+   revision, actual compiler mirror commit/tree, workflow run attempt,
+   job/step IDs, exit codes, and test outputs. Check the exact SHA again before
+   treating the tests as evidence.
+
+Never use the test organization's `GITHUB_TOKEN` to check out the private
+origin from a different organization. A successful source-free runner canary
+does **not** imply the application and compiler trees were mirrored or tested.
+If GitHub rejects object writes or no admissible source path exists, stop and
+retain the source-only classification. Do not bypass a failed transfer.
+
+## Additional executable guest edge matrix
+
+Each `tests/*.ores` file is paired with an exact `.expected` oracle and
+is automatically included by `scripts/test.sh`. The following three **new,
+independent** programs extend the existing contract set:
+
+- `htmx-flag-adversarial.ores`: absent/duplicate/inconsistent values,
+  noncanonical case, whitespace, comma combinations, accepted booleans
+  (12 assertions).
+- `htmx-head-history-adversarial.ores`: HEAD never transmits body bytes,
+  selected full/fragment representation survives for headers, history restore
+  wins over HX-Request, and invalid headers fail closed even for HEAD
+  (9 assertions).
+- `counter-token-fragment-adversarial.ores`: embedded CSRF-bearing
+  fragments disable HTMX history snapshots, supplied text and attribute values
+  are escaped, and POST action paths remain local (9 assertions).
+
+These are guest *fixtures*, not claimed guest executions until the pinned
+compiler runs them. They model normalized adapter flags and rendered strings,
+not live HTTP parsing, real CSRF verification, or browser localStorage.

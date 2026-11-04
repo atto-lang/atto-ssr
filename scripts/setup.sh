@@ -31,7 +31,18 @@ if [[ -L "$source_dir" ]]; then
   echo "compiler path must not be a symlink" >&2
   exit 65
 fi
+# A tree-complete, verified mirror can pre-populate .work/compiler.
+# Offline mode MUST never attempt a private origin clone with an unrelated
+# organization's GITHUB_TOKEN (or fall back to implicit network access).
+case "${ORESLANG_OFFLINE:-0}" in
+  0|1) ;;
+  *) echo "ORESLANG_OFFLINE must be 0 or 1" >&2; exit 65 ;;
+esac
 if [[ ! -e "$source_dir" ]]; then
+  if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
+    echo "offline compiler checkout missing: $source_dir" >&2
+    exit 69
+  fi
   git clone --depth 1 --single-branch --branch "compiler-mirror/$revision" \
     https://github.com/ores-truffle-oreslang/oreslang-ssr.git "$source_dir"
 fi
@@ -39,7 +50,15 @@ if [[ "$(git -C "$source_dir" rev-parse --show-toplevel)" != "$(cd "$source_dir"
   echo "compiler path must be its own Git checkout" >&2
   exit 65
 fi
-if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; then
+actual_commit="$(git -C "$source_dir" rev-parse 'HEAD')" || {
+  echo "compiler checkout has no readable HEAD" >&2
+  exit 65
+}
+actual_tree="$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" || {
+  echo "compiler checkout has no readable Git tree" >&2
+  exit 65
+}
+if [[ "$actual_tree" != "$expected_tree" ]]; then
   echo "compiler source tree does not match compiler-tree.txt; preserving checkout" >&2
   exit 65
 fi
@@ -52,8 +71,44 @@ if [[ -n "$(git -C "$source_dir" status --porcelain --untracked-files=all)" ]]; 
   echo "compiler checkout must be clean; preserving local changes" >&2
   exit 65
 fi
-mvn -B -ntp -q -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
+# Generated classes are ignored by Git; a previous build might leave valid-
+# looking artifacts that could conceal a zero-exit but non-producing Maven
+# invocation. Reject symlinked ancestors before removing anything. Never
+# delete an artifact through a redirect into another directory or repository.
+entry="$source_dir/target/classes/dev/oreslang/launcher/OresMain.class"
+for artifact_dir in \
+  "$source_dir/target/classes" \
+  "$source_dir/target/classes/dev" \
+  "$source_dir/target/classes/dev/oreslang" \
+  "$source_dir/target/classes/dev/oreslang/launcher"; do
+  if [[ -L "$artifact_dir" ]]; then
+    echo "compiler class-output directory must not be a symlink" >&2
+    exit 65
+  fi
+done
+if [[ -L "$entry" ]]; then
+  echo "compiler entrypoint must not be a symlink" >&2
+  exit 65
+fi
+rm -f -- "$root/.work/classpath.txt" "$entry"
+maven_mode=()
+if [[ "${ORESLANG_OFFLINE:-0}" == "1" ]]; then
+  maven_mode=(-o)
+fi
+mvn -B -ntp -q "${maven_mode[@]}" -f "$source_dir/pom.xml" -DskipTests clean package dependency:build-classpath \
   -Dmdep.outputFile="$root/.work/classpath.txt"
+# A zero-exit Maven process is not proof that the intended compiler exists.
+# Refuse to publish a launcher which cannot read its dependency classpath or
+# load the exact main class it is configured to execute. This also protects
+# against mock/synthetic builds being mistakenly promoted as native evidence.
+if [[ -L "$root/.work/classpath.txt" || ! -f "$root/.work/classpath.txt" || ! -s "$root/.work/classpath.txt" ]]; then
+  echo "compiler build did not produce a nonempty regular classpath file" >&2
+  exit 65
+fi
+if [[ -L "$entry" || ! -f "$entry" || ! -s "$entry" ]]; then
+  echo "compiler build did not produce the expected OresMain class" >&2
+  exit 65
+fi
 launcher="$(mktemp "$root/.work/.ores.XXXXXX")"
 trap 'rm -f "$launcher"' EXIT
 cat > "$launcher" <<'RUNNER'
@@ -67,4 +122,5 @@ exec java --enable-native-access=ALL-UNNAMED \
 RUNNER
 chmod +x "$launcher"
 mv -f "$launcher" "$root/.work/ores"
+printf 'compiler snapshot: pinned_ref=%s checkout_ref=%s tree=%s\n' "$revision" "$actual_commit" "$actual_tree"
 echo "compiler ready: bash scripts/test.sh"

@@ -1,0 +1,21 @@
+import module htmx_http from '../src/htmx_http';
+
+// Presence, duplication, and canonical-value checks are independent.
+// The adapter must normalize raw HTTP headers before invoking this routine.
+pub routine main(): void {
+  stdio.println(htmx_http.parse_flag(false, false, "").unwrap() == false);
+  stdio.println(htmx_http.parse_flag(true, false, "false").unwrap() == false);
+  stdio.println(htmx_http.parse_flag(true, false, "true").unwrap() == true);
+  stdio.println(htmx_http.parse_flag(false, true, "").is_err());
+  stdio.println(htmx_http.parse_flag(false, true, "true").is_err());
+  stdio.println(htmx_http.parse_flag(true, true, "true").is_err());
+  stdio.println(htmx_http.parse_flag(true, true, "false").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "true").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "false").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "True").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "0").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "1").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true,false").is_err());
+  return;
+}
