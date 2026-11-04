@@ -1,0 +1,21 @@
+import module url from '../src/url';
+
+// The entire path remains local; length and segment count are independent.
+pub routine main(): void {
+  stdio.println(url.local_path([]).is_ok());
+  stdio.println(url.render(url.local_path([]).unwrap()) == "/");
+  stdio.println(url.render(url.local_path(["root"]).unwrap()) == "/root");
+  stdio.println(url.render(url.local_path(["a","b"]).unwrap()) == "/a/b");
+  stdio.println(url.local_path(["a","b","c","d","e","f","g","h"]).is_ok());
+  stdio.println(url.local_path(["a","b","c","d","e","f","g","h","i"]).is_err());
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_ok());
+  stdio.println(url.local_path(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]).is_err());
+  stdio.println(url.local_path(["a b"]).is_err());
+  stdio.println(url.local_path(["a/b"]).is_err());
+  stdio.println(url.local_path(["a%2Fb"]).is_err());
+  stdio.println(url.local_path(["a?b"]).is_err());
+  stdio.println(url.local_path(["a#b"]).is_err());
+  stdio.println(url.local_path(["."]).is_err());
+  stdio.println(url.local_path([".."]).is_err());
+  return;
+}

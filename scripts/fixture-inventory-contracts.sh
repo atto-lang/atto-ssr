@@ -90,4 +90,144 @@ mv "$fake/tests/reject" "$fake/reject-saved"
 ln -s "$fake/reject-saved" "$fake/tests/reject"
 assert_rejected_before_guest "symlinked negative directory"
 
+# The real CI must gate the expensive compiler job on this mode. Check both
+# success and negative inventories WITHOUT invoking any mock guest.
+new_fixture
+rm -f "$fake/calls"
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr"
+grep -q '1 positive and 1 negative pairs verified' "$tmp/stdout"
+[[ ! -e "$fake/calls" ]] || { echo "inventory-only executed guest" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+rm "$fake/tests/good.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted absent expectation" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+printf 'orphan\n' > "$fake/tests/orphan.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted orphan" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+mv "$fake/tests/good.ores" "$fake/guest-source"
+ln -s "$fake/guest-source" "$fake/tests/good.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || { echo "inventory-only accepted symlink" >&2; exit 1; }
+checks=$((checks + 1))
+
+new_fixture
+: > "$fake/tests/good.expected"
+assert_rejected_before_guest "empty positive oracle"
+
+new_fixture
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --unsupported-mode >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 64 && ! -e "$fake/calls" ]] || {
+  echo "unknown test runner argument admitted" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+rm -f "$fake/calls"
+ORESLANG_BIN="$tmp/missing-compiler" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr"
+grep -q '1 positive and 1 negative pairs verified' "$tmp/stdout"
+[[ ! -e "$fake/calls" ]] || {
+  echo "inventory-only attempted missing compiler" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+: > "$fake/tests/good.expected"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$fake/bin/ores" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "inventory-only admitted empty positive oracle" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+# The audit and preflight scripts are executable inputs and cannot be
+# swapped through symlinks or removed without failing before guest dispatch.
+new_fixture
+mv "$fake/scripts/audit.sh" "$fake/saved-audit"
+ln -s "$fake/saved-audit" "$fake/scripts/audit.sh"
+assert_rejected_before_guest "symlinked audit helper"
+
+new_fixture
+rm "$fake/scripts/check.sh"
+assert_rejected_before_guest "missing compiler check helper"
+
+new_fixture
+mv "$fake/tests/reject/bad.ores" "$fake/saved-negative"
+ln -s "$fake/saved-negative" "$fake/tests/reject/bad.ores"
+assert_rejected_before_guest "symlinked negative source"
+
+new_fixture
+printf 'EXTRA_DIAGNOSTIC\n' > "$fake/tests/reject/unused.err"
+assert_rejected_before_guest "orphan negative diagnostic"
+
+new_fixture
+rm -f "$fake/calls"
+mv "$fake/scripts/check.sh" "$fake/saved-check"
+ln -s "$fake/saved-check" "$fake/scripts/check.sh"
+status=0
+ORESLANG_BIN="$tmp/no-compiler" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "inventory-only admitted symlinked helper" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+# Empty source files must never count as executed guest coverage.
+new_fixture
+: > "$fake/tests/good.ores"
+assert_rejected_before_guest "empty positive source"
+
+new_fixture
+: > "$fake/tests/reject/bad.ores"
+assert_rejected_before_guest "empty negative source"
+
+new_fixture
+: > "$fake/examples/demo.ores"
+assert_rejected_before_guest "empty example source"
+
+new_fixture
+: > "$fake/tests/good.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$tmp/not-installed" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "empty positive source passed inventory-only admission" >&2; exit 1;
+}
+checks=$((checks + 1))
+
+new_fixture
+: > "$fake/examples/demo.ores"
+rm -f "$fake/calls"
+status=0
+ORESLANG_BIN="$tmp/not-installed" CALL_LOG="$fake/calls" \
+  bash "$fake/scripts/test.sh" --inventory-only >"$tmp/stdout" 2>"$tmp/stderr" || status=$?
+[[ "$status" -eq 65 && ! -e "$fake/calls" ]] || {
+  echo "empty example source passed inventory-only admission" >&2; exit 1;
+}
+checks=$((checks + 1))
+
 echo "fixture inventory: $checks source-only contract cases passed"

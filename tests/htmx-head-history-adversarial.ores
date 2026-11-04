@@ -1,0 +1,44 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+import module htmx_http from '../src/htmx_http';
+
+// HEAD must suppress bytes but preserve the selected GET representation.
+pub routine main(): void {
+  val full_page = html.document(
+    html.title(html.attrs_empty(), markup.text("Full")),
+    html.p(html.attrs_empty(), markup.text("Full body"))
+  );
+  val fragment = html.p(html.attrs_empty(), markup.text("Fragment"));
+
+  val head_restore = htmx_http.reply_checked(
+    true, false, "true",
+    true, false, "true",
+    true, full_page, fragment
+  ).unwrap();
+  stdio.println(head_restore.body == "");
+  stdio.println(head_restore.representation_body == markup.render(full_page));
+  stdio.println(head_restore.status == 200);
+  stdio.println(head_restore.cache_control == "private, no-store");
+
+  val head_fragment = htmx_http.reply_checked(
+    true, false, "true",
+    false, false, "",
+    true, full_page, fragment
+  ).unwrap();
+  stdio.println(head_fragment.body == "");
+  stdio.println(head_fragment.representation_body == markup.render(fragment));
+  stdio.println(head_fragment.vary == "HX-Request, HX-History-Restore-Request");
+
+  // HEAD body suppression never hides invalid request metadata.
+  stdio.println(htmx_http.reply_checked(
+    true, true, "true",
+    false, false, "",
+    true, full_page, fragment
+  ).is_err());
+  stdio.println(htmx_http.reply_checked(
+    false, false, "",
+    true, false, "INVALID",
+    true, full_page, fragment
+  ).is_err());
+  return;
+}

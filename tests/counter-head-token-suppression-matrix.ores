@@ -1,0 +1,37 @@
+import module counter_response from '../src/counter_response';
+
+// Counter rendering is read-side only; CSRF must be enforced by the handler.
+// Ensure invalid HTMX metadata is rejected even when HEAD suppresses output.
+pub routine main(): void {
+  val direct = counter_response.get_or_head(
+    false, false, "", false, false, "", false, "<42>", "csrf&secret"
+  ).unwrap();
+  val fragment = counter_response.get_or_head(
+    true, false, "true", false, false, "", false, "<42>", "csrf&secret"
+  ).unwrap();
+  val restored = counter_response.get_or_head(
+    true, false, "true", true, false, "true", false, "<42>", "csrf&secret"
+  ).unwrap();
+  val head = counter_response.get_or_head(
+    true, false, "true", false, false, "", true, "<42>", "csrf&secret"
+  ).unwrap();
+  stdio.println(restored.body == direct.body);
+  stdio.println(head.body == "");
+  stdio.println(head.representation_body == fragment.body);
+  stdio.println(head.status == 200);
+  stdio.println(head.vary == "HX-Request, HX-History-Restore-Request");
+  stdio.println(head.cache_control == "private, no-store");
+  stdio.println(fragment.body.replace_literal("<42>", "") == fragment.body);
+  stdio.println(fragment.body.replace_literal("&lt;42&gt;", "") != fragment.body);
+  stdio.println(fragment.body.replace_literal("csrf&amp;secret", "") != fragment.body);
+  stdio.println(fragment.body.replace_literal("hx-history=\"false\"", "") != fragment.body);
+  stdio.println(direct.body.replace_literal("<!doctype html>", "") != direct.body);
+  stdio.println(fragment.body.replace_literal("<!doctype html>", "") == fragment.body);
+  stdio.println(counter_response.get_or_head(
+    true, true, "true", false, false, "", true, "1", "token"
+  ).is_err());
+  stdio.println(counter_response.get_or_head(
+    true, false, "true", true, false, "TRUE", true, "1", "token"
+  ).is_err());
+  return;
+}

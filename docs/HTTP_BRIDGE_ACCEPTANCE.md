@@ -164,3 +164,24 @@ origin from a different organization. A successful source-free runner canary
 does **not** imply the application and compiler trees were mirrored or tested.
 If GitHub rejects object writes or no admissible source path exists, stop and
 retain the source-only classification. Do not bypass a failed transfer.
+
+## Additional executable guest edge matrix
+
+Each `tests/*.ores` file is paired with an exact `.expected` oracle and
+is automatically included by `scripts/test.sh`. The following three **new,
+independent** programs extend the existing contract set:
+
+- `htmx-flag-adversarial.ores`: absent/duplicate/inconsistent values,
+  noncanonical case, whitespace, comma combinations, accepted booleans
+  (12 assertions).
+- `htmx-head-history-adversarial.ores`: HEAD never transmits body bytes,
+  selected full/fragment representation survives for headers, history restore
+  wins over HX-Request, and invalid headers fail closed even for HEAD
+  (9 assertions).
+- `counter-token-fragment-adversarial.ores`: embedded CSRF-bearing
+  fragments disable HTMX history snapshots, supplied text and attribute values
+  are escaped, and POST action paths remain local (9 assertions).
+
+These are guest *fixtures*, not claimed guest executions until the pinned
+compiler runs them. They model normalized adapter flags and rendered strings,
+not live HTTP parsing, real CSRF verification, or browser localStorage.

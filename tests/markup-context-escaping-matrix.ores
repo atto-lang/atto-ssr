@@ -1,0 +1,22 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+
+// Verify text and inert attribute contexts independently, without printing
+// untrusted user input as raw HTML into CI logs.
+pub routine main(): void {
+  stdio.println(markup.render(markup.text("&")) == "&amp;");
+  stdio.println(markup.render(markup.text("<")) == "&lt;");
+  stdio.println(markup.render(markup.text(">")) == "&gt;");
+  stdio.println(markup.render(markup.text("\"")) == "&quot;");
+  stdio.println(markup.render(markup.text("'")) == "&#39;");
+  stdio.println(markup.render(markup.text("&amp;")) == "&amp;amp;");
+  stdio.println(markup.render(markup.empty()) == "");
+  stdio.println(markup.render(markup.when(false, markup.text("hidden"))) == "");
+  stdio.println(markup.render(markup.when(true, markup.text("<"))) == "&lt;");
+  stdio.println(markup.render(markup.concat(markup.text("<"), markup.text("&"))) == "&lt;&amp;");
+  stdio.println(markup.render(markup.join([markup.text("a"), markup.text("&"), markup.text("b")])) == "a&amp;b");
+  stdio.println(html.attrs_render(html.attr("title", "\"<&").unwrap()) == " title=\"&quot;&lt;&amp;\"");
+  stdio.println(html.attrs_render(html.attrs_join([html.id("x"), html.class_name("y")])) == " id=\"x\" class=\"y\"");
+  stdio.println(markup.render(html.p(html.attrs_empty(), markup.text("<safe>"))) == "<p>&lt;safe&gt;</p>");
+  return;
+}
