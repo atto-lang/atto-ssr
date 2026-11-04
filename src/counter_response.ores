@@ -1,0 +1,41 @@
+import module counter_view from './counter_view';
+import module htmx_http from './htmx_http';
+
+// Example read-side composition. Only for GET/HEAD after routing, authn,
+// tenant admission, and an authorized actor snapshot. This module performs
+// neither actor writes nor CSRF verification and must never be called as
+// the POST mutation handler.
+//
+// `suppress_body` comes from the validated router decision, not an HX flag.
+define module counter_response as
+  pub fnc get_or_head(
+    bool hx_present,
+    bool hx_duplicate,
+    string hx_value,
+    bool restore_present,
+    bool restore_duplicate,
+    string restore_value,
+    bool suppress_body,
+    string count_text,
+    string csrf_token
+  ): Result<{
+    status: int,
+    content_type: string,
+    body: string,
+    representation_body: string,
+    vary: string,
+    cache_control: string
+  }, string> {
+    return htmx_http.reply_checked(
+      hx_present,
+      hx_duplicate,
+      hx_value,
+      restore_present,
+      restore_duplicate,
+      restore_value,
+      suppress_body,
+      counter_view.page(count_text, csrf_token),
+      counter_view.fragment(count_text, csrf_token)
+    );
+  }
+end

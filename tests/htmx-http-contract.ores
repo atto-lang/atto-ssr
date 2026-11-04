@@ -1,0 +1,82 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+import module htmx_http from '../src/htmx_http';
+
+pub routine main(): void {
+  val full_page = html.document(
+    html.title(html.attrs_empty(), markup.text("Counter")),
+    html.div(html.id("counter"), markup.text("Full <&>"))
+  );
+  val fragment = html.div(
+    html.id("counter"),
+    markup.text("Partial <&>")
+  );
+
+  val direct = htmx_http.reply_checked(
+    false, false, "",
+    false, false, "",
+    false, full_page, fragment
+  ).unwrap();
+  stdio.println(direct.status);
+  stdio.println(direct.content_type);
+  stdio.println(direct.vary);
+  stdio.println(direct.cache_control);
+  stdio.println(direct.body);
+
+  val partial = htmx_http.reply_checked(
+    true, false, "true",
+    false, false, "",
+    false, full_page, fragment
+  ).unwrap();
+  stdio.println(partial.body);
+
+  val restored = htmx_http.reply_checked(
+    true, false, "true",
+    true, false, "true",
+    false, full_page, fragment
+  ).unwrap();
+  stdio.println(restored.body);
+
+  val head_partial = htmx_http.reply_checked(
+    true, false, "true",
+    false, false, "",
+    true, full_page, fragment
+  ).unwrap();
+  stdio.println(head_partial.body == "");
+  stdio.println(head_partial.representation_body);
+  stdio.println(head_partial.status);
+  stdio.println(head_partial.vary);
+
+  // Explicit false request values are treated like absent headers.
+  val false_flags = htmx_http.reply_checked(
+    true, false, "false",
+    true, false, "false",
+    false, full_page, fragment
+  ).unwrap();
+  stdio.println(false_flags.body);
+
+  // Reject duplicates, comma-combined values, invalid case and the
+  // inconsistent absent-but-nonempty adapter state.
+  stdio.println(htmx_http.parse_flag(true, true, "true").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "TRUE").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "true,false").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "true").is_err());
+  stdio.println(htmx_http.parse_flag(false, false, "").unwrap());
+
+  stdio.println(htmx_http.reply_checked(
+    false, false, "",
+    true, true, "true",
+    false, full_page, fragment
+  ).is_err());
+  stdio.println(htmx_http.reply_checked(
+    false, false, "",
+    true, false, "TRUE",
+    false, full_page, fragment
+  ).is_err());
+  stdio.println(htmx_http.reply_checked(
+    true, false, "true ",
+    false, false, "",
+    false, full_page, fragment
+  ).is_err());
+  return;
+}
