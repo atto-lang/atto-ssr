@@ -1,5 +1,7 @@
 import module html from './html';
 import class Attrs from './html';
+import class LocalPath from './url';
+import module url from './url';
 
 // HTMX is a natural fit for native Oreslang SSR: the browser receives HTML
 // fragments and performs requests/swaps without Oreslang needing JS/WASM.
@@ -8,6 +10,66 @@ import class Attrs from './html';
 // prevent quote-breakout, but HTML escaping alone does not validate URLs,
 // selectors, trigger expressions, or executable hx-vals policies.
 define module htmx as
+
+  // Typed same-origin path syntax, not route access or CSRF authorization.
+  pub fnc get_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-get", url.render(path));
+  }
+
+  pub fnc post_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-post", url.render(path));
+  }
+
+  pub fnc put_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-put", url.render(path));
+  }
+
+  pub fnc patch_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-patch", url.render(path));
+  }
+
+  pub fnc delete_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-delete", url.render(path));
+  }
+
+  pub fnc push_url_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("hx-push-url", url.render(path));
+  }
+
+  pub fnc sse_connect_local(LocalPath path): Attrs {
+    return html.attr_value_trusted("sse-connect", url.render(path));
+  }
+
+  // Closed, expression-free subsets. The general HTMX grammar is *not*
+  // parsed here; dynamic modifiers/expressions still require explicit trust.
+  pub fnc swap(string strategy): Result<Attrs, string> {
+    if strategy == "innerHTML" || strategy == "outerHTML"
+      || strategy == "beforebegin" || strategy == "afterbegin"
+      || strategy == "beforeend" || strategy == "afterend"
+      || strategy == "delete" || strategy == "none" then
+      return Ok(swap_trusted(strategy));
+    fi
+    return Err("HTMX swap requires an exact allowed strategy");
+  }
+
+  pub fnc trigger(string event_name): Result<Attrs, string> {
+    if event_name == "click" || event_name == "change"
+      || event_name == "submit" || event_name == "keyup" then
+      return Ok(trigger_trusted(event_name));
+    fi
+    return Err("HTMX trigger requires an exact allowed event");
+  }
+
+  pub fnc target(string selector): Result<Attrs, string> {
+    if selector == "this" || selector == "body" then
+      return Ok(target_trusted(selector));
+    fi
+    return Err("HTMX target requires a closed selector value");
+  }
+
+  pub fnc vals_empty(): Attrs {
+    return vals_trusted("{}");
+  }
 
   pub fnc get_trusted(string url): Attrs {
     return html.attr_value_trusted("hx-get", url);
@@ -59,6 +121,18 @@ define module htmx as
 
   pub fnc boost(bool enabled): Attrs {
     return html.attr_value_trusted("hx-boost", enabled ? "true" : "false");
+  }
+
+  // Explicitly suppress htmx localStorage history snapshots for sensitive
+  // regions/pages. This does not replace HTTP Cache-Control or redaction.
+  pub fnc no_history_snapshot(): Attrs {
+    return html.attr_value_trusted("hx-history", "false");
+  }
+
+  // Disables HTMX processing for the entire descendant subtree.
+  // It is not an HTML sanitizer or an authorization boundary.
+  pub fnc disable_subtree(): Attrs {
+    return html.bool_attr_trusted("hx-disable", true);
   }
 
   pub fnc outer_html(): Attrs {

@@ -17,7 +17,8 @@ Implemented with the pinned literal replacement primitive and nominal classes wi
 
 - [x] escaped `markup.text(string)`
 - [x] allowlisted, escaped `html.attr(name, value)`
-- URL-aware helpers
+- [x] narrow same-origin `LocalPath` syntax and HTMX enum-like option subset (guest validation pending)
+- [ ] general URL/query builder, origin/redirect authorization and router normalization tests
 - safer HTMX JSON/value helpers
 - [x] tests for `& < > " '`, mixed Unicode, injection payloads and forged wrappers
 

@@ -1,0 +1,20 @@
+import module markup from '../src/markup';
+import module counter_view from '../src/counter_view';
+
+// Positive guest assertions avoid echoing untrusted token data in fixture
+// logs. The expected file pins the seven security invariants as booleans.
+pub routine main(): void {
+  val fragment = markup.render(
+    counter_view.fragment("<b>unsafe</b>", "a\"&b")
+  );
+  stdio.println(fragment.replace_literal("hx-history=\"false\"", "") != fragment);
+  stdio.println(fragment.replace_literal("<b>", "") == fragment);
+  stdio.println(fragment.replace_literal("&lt;b&gt;unsafe&lt;/b&gt;", "") != fragment);
+  stdio.println(fragment.replace_literal("value=\"a&quot;&amp;b\"", "") != fragment);
+
+  val page = markup.render(counter_view.page("42", "csrf-7"));
+  stdio.println(page.replace_literal("<main hx-history=\"false\">", "") != page);
+  stdio.println(page.replace_literal("hx-history=\"false\"", "") != page);
+  stdio.println(page.replace_literal("<form", "") != page);
+  return;
+}

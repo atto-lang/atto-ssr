@@ -21,6 +21,7 @@ Provide the Oreslang equivalent of the small, composable server-rendering layer 
 - `src/css.ores` — declarations, rules, media queries, stylesheet composition.
 - `src/htmx.ores` — `hx-*` attribute helpers for requests, targets, triggers, swaps, selection, OOB swaps.
 - `src/response.ores` — Axum-like HTML response value: status + content type + body.
+- `src/htmx_request.ores` — choose a full document or a partial response from normalized HTMX request flags, with required HTTP `Vary` metadata.
 
 ## Example
 
@@ -79,6 +80,63 @@ HTML escaping is context-specific. `html.attr` rejects URL, event, CSS,
 `srcdoc`, HTMX and unknown attributes. Do not treat escaping as URL validation,
 JavaScript/CSS sanitization, or a policy for application code that reinterprets
 an attribute value. See [docs/SECURITY.md](docs/SECURITY.md).
+
+## Safe local URL and HTMX option subset
+
+`url.local_path(["workflows", "run_7"]).unwrap()` yields an opaque
+`LocalPath` equal to `/workflows/run_7`. Its strict ASCII segment
+grammar prevents unsafe authority, scheme, percent-decoding, traversal,
+query and fragment syntax. Use `html.href_local(path)`,
+`html.action_local(path)`, or `htmx.get_local(path)` and corresponding
+HTMX mutation/SSE helpers. For basic HTMX options use
+`htmx.swap("outerHTML")`, `htmx.trigger("click")`, or
+`htmx.target("this")` which return `Result<Attrs,string>`.
+The older `*_trusted` helpers remain explicit escape hatches.
+
+These are syntax boundaries, not route authorization, CSRF protection,
+or guarantees about actual HTTP transport. See `docs/SECURITY.md`.
+
+
+## Maud + Axum + htmx integration
+
+SSR keeps Maud's escaped, composable markup values and Axum's small
+response-boundary approach without adopting Rust macros or a host template
+runtime. HTMX adds incremental fragment swaps, but direct navigation and
+history restoration must return a full page.
+
+`htmx_request.reply(hx_request, history_restore_request, page, fragment)`
+returns status, HTML content type, body, and required `vary` metadata.
+The HTTP adapter **must merge** `Vary: HX-Request,
+HX-History-Restore-Request` into real response headers: returning the record
+does not send those headers itself. It must normalize and validate untrusted
+HTTP flags before passing booleans to SSR. The fixed helpers
+`htmx.no_history_snapshot()` and `htmx.disable_subtree()` support htmx
+browser controls but do not replace server authorization or cache policy.
+
+See [docs/MAUD_AXUM_HTMX.md](docs/MAUD_AXUM_HTMX.md) for the contract,
+wire/guest/browser acceptance matrix, and remaining work.
+
+## Checked HTMX HTTP projection and counter view
+
+The source-only HTTP boundary now provides `htmx_http.reply_checked`:
+the HTTP adapter supplies bounded, normalized HX-Request and
+HX-History-Restore-Request header values with presence/duplicate flags.
+Invalid or duplicate headers fail closed. The resulting record includes the
+selected HTML representation, a HEAD-safe transmitted `body`, `vary`
+metadata, and conservative `cache_control = "private, no-store"` metadata.
+**Metadata does not automatically become HTTP wire headers.**
+
+`counter_view.fragment/page` composes an escaped counter display, a
+typed local action, HTMX partial swaps, and a conventional HTML POST form
+with a hidden CSRF field. `counter_response.get_or_head` combines that
+read-only view with checked HTMX negotiation. The counter actor, its
+`critical` mutation, CSRF verification, routing integration, and HTTP
+transport are **not implemented by this SSR package**.
+
+See [docs/HTTP_BRIDGE_ACCEPTANCE.md](docs/HTTP_BRIDGE_ACCEPTANCE.md) for the
+real router + actor integration plan, admission gates and wire test matrix.
+The three new positive `.ores` fixtures require exact guest execution before
+these changes can be promoted.
 
 ## Design principles
 

@@ -1,0 +1,56 @@
+import class Markup from './markup';
+import module response from './response';
+
+// HTTP request headers must be normalized and validated at the trusted
+// transport/router boundary before they become these two boolean flags.
+// No client-supplied header is an authorization or CSRF credential.
+//
+// HX-History-Restore-Request takes precedence over HX-Request: on history
+// cache misses the browser needs the complete document, not a fragment.
+// This is an eager, router-independent response value, not an HTTP adapter.
+define module htmx_request as
+
+  pub fnc wants_fragment(bool hx_request, bool history_restore_request): bool {
+    if history_restore_request then
+      return false;
+    fi
+    return hx_request;
+  }
+
+  pub fnc choose_body(
+    bool hx_request,
+    bool history_restore_request,
+    Markup full_page,
+    Markup fragment
+  ): Markup {
+    if wants_fragment(hx_request, history_restore_request) then
+      return fragment as Markup;
+    fi
+    return full_page as Markup;
+  }
+
+  // The adapter MUST merge this into the wire Vary header and must NOT
+  // cache distinct full-page and partial representations under one key.
+  // These fields are response metadata, not serialized HTTP headers.
+  pub fnc reply(
+    bool hx_request,
+    bool history_restore_request,
+    Markup full_page,
+    Markup fragment
+  ): {status: int, content_type: string, body: string, vary: string} {
+    val chosen = choose_body(
+      hx_request,
+      history_restore_request,
+      full_page,
+      fragment
+    );
+    val rendered = response.ok(chosen);
+    return struct{status: int, content_type: string, body: string, vary: string}{
+      status: rendered.status,
+      content_type: rendered.content_type,
+      body: rendered.body,
+      vary: "HX-Request, HX-History-Restore-Request"
+    };
+  }
+
+end

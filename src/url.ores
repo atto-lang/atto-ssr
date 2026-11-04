@@ -1,0 +1,59 @@
+// Same-origin path syntax: no authority, query, fragment or percent escapes.
+// Whitelist ASCII slug segments, <=8 segments, <=64 ASCII bytes per segment.
+// A valid path is NOT evidence of route permission or CSRF protection.
+pub define class LocalPath as
+  private val string value;
+
+  private constructor(string path) {
+    self.value = path;
+  }
+
+  pub static fnc from_segments(Array<string> segments): Result<LocalPath, string> {
+    let string rendered = "";
+    let int count = 0;
+    for (val segment of segments) {
+      count = count + 1;
+      if count > 8 then
+        return Err("local path exceeds eight segments");
+      fi
+      if segment == "" then
+        return Err("local path cannot have an empty segment");
+      fi
+      let string remainder = segment;
+      let string length_mask = segment;
+      for (val allowed of ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "_", "-"]) {
+        remainder = remainder.replace_literal(allowed, "");
+        length_mask = length_mask.replace_literal(allowed, "x");
+      }
+      if remainder != "" then
+        return Err("local path accepts only ASCII letters, digits, underscore and hyphen");
+      fi
+      // After ASCII validation, each mask unit represents exactly one byte.
+      // The replacement changes any run of 65 units, rejecting longer input.
+      if length_mask.replace_literal("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "") != length_mask then
+        return Err("local path segment exceeds 64 bytes");
+      fi
+      rendered = rendered + "/" + segment;
+    }
+    if count == 0 then
+      rendered = "/";
+    fi
+    return Ok(new LocalPath(rendered));
+  }
+
+  pub render(): string {
+    return self.value;
+  }
+end
+
+define module url as
+  pub fnc local_path(Array<string> segments): Result<LocalPath, string> {
+    return LocalPath.from_segments(segments);
+  }
+
+  // Imported signatures are not yet fully typed by the pinned compiler.
+  pub fnc render(LocalPath path): string {
+    val checked = path as LocalPath;
+    return checked.render();
+  }
+end

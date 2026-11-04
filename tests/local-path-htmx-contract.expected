@@ -1,0 +1,28 @@
+/
+/workflows/run_7
+<a href="/workflows/run_7">safe &lt;link&gt;</a>
+<form action="/">form</form>
+<div hx-get="/workflows/run_7" hx-swap="outerHTML" hx-trigger="click" hx-target="this" hx-vals="{}">view</div>
+<div hx-post="/workflows/run_7" hx-put="/workflows/run_7" hx-patch="/workflows/run_7" hx-delete="/workflows/run_7" hx-push-url="/workflows/run_7" sse-connect="/workflows/run_7">actions</div>
+false
+false
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
