@@ -53,17 +53,52 @@ fi
 
 # Guard the new safe-by-construction API against accidental raw escape hatches
 # or dynamic tag/name factories. This is a source guard, not compiler proof.
-if grep -nE 'pub (static )?fnc (trusted_raw|attr_trusted|element_trusted|script_trusted|style_sheet|raw|unsafe|from_html|from_raw)\\(' src/safe_html.ores; then
+if grep -nE 'pub (static )?fnc (trusted_raw|attr_trusted|element_trusted|script_trusted|style_sheet|raw|unsafe|from_html|from_raw)\(' src/safe_html.ores; then
   fail "safe_html must not expose raw constructors or promotions"
 fi
-if grep -nE 'pub static fnc (element|void_element|attr)\\(' src/safe_html.ores; then
+if grep -nE 'pub static fnc (element|void_element|attr)\(' src/safe_html.ores; then
   fail "safe_html must not expose dynamically named HTML"
 fi
 if [[ "$(grep -Fc 'markup.trusted_raw(render(node))' src/safe_html.ores)" -ne 1 ]]; then
   fail "safe_html must have one reviewed typed-to-Markup promotion boundary"
 fi
-if grep -nE '(^|[[:space:]])(script|style)[[:space:]]*\\(' src/safe_html.ores; then
+if grep -nE '(^|[[:space:]])(script|style)[[:space:]]*\(' src/safe_html.ores; then
   fail "safe_html cannot expose script/style node constructors"
 fi
+
+# Safe HTML must snapshot caller array arguments before exposing nodes.
+# These source checks complement, but do not replace, compiler-backed tests.
+for required in 'let Array<SafeAttr> attrs_copy = arr[];' 'let Array<HtmlNode> children_copy = arr[];' 'attrs_copy.add(attr as SafeAttr);' 'children_copy.add(child as HtmlNode);' 'self.attributes = attrs_copy;' 'self.children = children_copy;'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML node ownership copy is missing: $required"
+  fi
+done
+if grep -nE 'self\.(attributes|children)[[:space:]]*=[[:space:]]*(attributes|children);' src/safe_html.ores; then
+  fail "safe HTML nodes must not retain caller array aliases"
+fi
+
+# Prevent removing the typed-tree admission ceilings while retaining
+# the API and an apparently successful unbounded rendering path.
+for required in 'pub fnc render_with_limits(HtmlNode node, int max_depth, int max_nodes)' 'max_depth > 64' 'max_nodes > 4096' 'remaining_nodes - consumed' 'return Ok(checked.render());'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML depth/node admission guard missing: $required"
+  fi
+done
+
+# The compatibility entrypoint must not bypass the capped budgeted
+# preflight, and unique-node counting would undercount shared subtrees.
+for required in 'return render_with_limits(node, max_depth, 4096);' 'consumed = consumed + child_count.unwrap();' 'if remaining_depth < 1 then' 'if remaining_nodes < 1 then'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML occurrence admission invariant missing: $required"
+  fi
+done
+
+# Every guarded rendering entrypoint must delegate to a capped
+# attribute-descriptor preflight, not only the node/depth check.
+for required in 'return render_with_resource_limits(node, max_depth, max_nodes, 4096);' 'pub fnc render_with_resource_limits(HtmlNode node, int max_depth, int max_nodes, int max_attrs)' 'max_attrs < 0 || max_attrs > 4096' 'count_attrs_with_limits(max_depth, max_attrs)' 'remaining_attrs - consumed' 'consumed = consumed + child_count.unwrap();'; do
+  if ! grep -Fq -- "$required" src/safe_html.ores; then
+    fail "safe HTML attribute admission invariant missing: $required"
+  fi
+done
 
 echo "audit: native SSR invariants passed"

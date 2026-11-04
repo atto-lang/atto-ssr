@@ -1,0 +1,8 @@
+import module safe_html from '../../src/safe_html';
+define class HtmlNode as
+  pub render(): string { return "foreign-node"; }
+end
+pub routine main(): void {
+  stdio.println(safe_html.render(new HtmlNode()));
+  return;
+}

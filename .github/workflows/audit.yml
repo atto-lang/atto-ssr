@@ -23,6 +23,8 @@ jobs:
             bash -n "$script"
           done
       - run: bash scripts/audit.sh
+      - name: Exercise unsafe-constructor and alias audit rejection
+        run: bash scripts/audit-regex-contracts.sh
       - name: Reject unsafe guest fixture inventories
         run: bash scripts/fixture-inventory-contracts.sh
   render-contracts:

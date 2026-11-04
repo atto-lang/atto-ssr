@@ -6,3 +6,38 @@ true
 true
  href="/users/a_2"
  action="/users/a_2"
+<div id="stable">first</div>
+<section><div id="stable">first</div><div id="stable">first</div></section>
+<div id="stable">first</div>
+&lt;
+true
+true
+<div>&lt;</div>
+true
+<section><div>&lt;</div></section>
+<br>
+true
+&lt;
+<div>AB</div>
+true
+true
+<div>AB</div>
+true
+true
+true
+true
+&lt;x&gt;&lt;x&gt;
+true
+true
+&lt;
+false
+true
+true
+true
+false
+true
+true
+true
+true
+true
+true

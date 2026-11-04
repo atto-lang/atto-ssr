@@ -112,9 +112,13 @@ to legacy raw `Markup`, and must accept only a `HtmlNode`.
 The older `markup.trusted_raw`, `html.attr_trusted`, and
 `html.element_trusted` remain public. Therefore this does **not** enforce
 global safe-by-default behavior, and cannot prevent callers from using the
-legacy raw API. The array arguments of tree constructors also have not yet
-been proved immutable or owned, and the current serializer has no depth,
-encoded-byte, allocation, or recursion limits. No tenant/HTTP isolation is
+legacy raw API. `HtmlNode` now copies caller-owned attribute and child arrays into private
+arrays before publishing the node. This is a source-level ownership defense
+with an authored late-mutation regression fixture, **not yet compiler/run
+evidence**. It is not a proof of cross-actor heap isolation or safe recursive
+depth. The opt-in `safe_html.render_with_depth_limit(node, max_depth)` now rejects
+invalid and exceeded structural depth before producing a rendered string.
+`safe_html.render_with_limits(node,max_depth,max_nodes)` validates depth (1–64), rendered node occurrences (1–4096), and at most 4096 attribute descriptors before generating HTML. `safe_html.render_with_resource_limits(node,max_depth,max_nodes,max_attrs)` accepts a smaller attribute cap (0–4096). The depth-only helper delegates through the same default 4096-node and 4096-attribute caps. Repeated references count for every render occurrence; even disabled attributes count conservatively. The unchecked legacy `safe_html.render()` remains for compatibility. No entrypoint yet enforces encoded UTF-8 byte quotas, construction-time limits, or total allocations. This policy remains unverified by compiler guest execution. No tenant/HTTP isolation is
 implied. The safe-tree fixture and negative nominal-construction cases are
 authored expected oracles, not executed guest proof until CI admission works.
 

@@ -72,12 +72,14 @@ conversion, which serializes the already-typed tree.
 
 This is **not** yet the default `html` or `markup` API. Those retain explicit
 `trusted_raw` escape hatches for compatibility, so source code can still
-opt into unsafe HTML. `HtmlNode` holds arrays supplied by the caller: until
-Oreslang has a verified immutable owned-array snapshot, we cannot claim
-transitive immutability or resource bounds, nor can we claim that cycles or
-very deep trees are safely rejected. Rendering is synchronous and eager
-with repeated string concatenation and can be costly. Actor-native bounded
-streaming is still required separately.
+opt into unsafe HTML. `HtmlNode` now constructs private snapshots of supplied `SafeAttr` and
+`HtmlNode` arrays, so a caller's later `add()` operation cannot alter
+the already-constructed node's child/attribute membership. This behavior
+has a compiler-backed positive fixture but has **not yet been executed**.
+It does not prove runtime deep ownership across actor boundaries. The opt-in
+`safe_html.render_with_depth_limit(node, max_depth)` performs a fail-closed
+preflight over the fixed tree before eager serialization. This constrains nesting depth to an upper ceiling of 64, and delegates to a preflight that also rejects more than 4096 rendered node occurrences. `safe_html.render_with_limits(node, max_depth, max_nodes)` now also caps attribute descriptors at 4096; `safe_html.render_with_resource_limits(node, max_depth, max_nodes, max_attrs)` allows a smaller attribute budget (including zero). Both count repeated child references per rendered occurrence; disabled boolean attributes still count toward the descriptor budget. These checks reject before eager serialization, but do **not** bound UTF-8 byte length of text/attributes, construction-time array copies, or intermediate allocation. Rendering remains synchronous and eager with repeated string concatenation. Bounded actor-native
+streaming, scheduler ownership proof and capacity controls remain pending.
 
 ## Why not a template DSL first?
 

@@ -78,9 +78,10 @@ end
 
 // Closed HTML node algebra: text, fragment, fixed ordinary elements and
 // fixed void elements. No dynamic tags, raw HTML, <script> or <style> factory.
-// Note: arrays are caller-owned; until an owned immutable array/snapshot
-// primitive is proven, this is NOT a transitive immutability guarantee.
-// The compiler and renderer must eventually enforce depth/output limits.
+// Constructor copies input arrays so later caller mutations cannot change
+// this node's membership; this is not proof of cross-actor heap isolation.
+// The optional depth-limited preflight does not bound encoded output bytes,
+// allocations, or the legacy eager render() entry point.
 pub define class HtmlNode as
   private val string kind;
   private val string tag;
@@ -92,8 +93,20 @@ pub define class HtmlNode as
     self.kind = kind;
     self.tag = tag;
     self.text_value = value;
-    self.attributes = attributes;
-    self.children = children;
+    // Take independent owned array snapshots before publishing this node.
+    // Otherwise caller .add() operations can mutate a previously built tree
+    // (and can even introduce a self-cycle through a captured input array).
+    // Child nodes and attributes have private immutable fields themselves.
+    let Array<SafeAttr> attrs_copy = arr[];
+    for (val attr of attributes) {
+      attrs_copy.add(attr as SafeAttr);
+    }
+    let Array<HtmlNode> children_copy = arr[];
+    for (val child of children) {
+      children_copy.add(child as HtmlNode);
+    }
+    self.attributes = attrs_copy;
+    self.children = children_copy;
   }
 
   pub static fnc text(string value): HtmlNode {
@@ -180,6 +193,76 @@ pub define class HtmlNode as
     return new HtmlNode("void", "link", "", attributes, []);
   }
 
+  // Depth guard for the safe tree only. It checks structure before eager
+  // serialization; it is not an encoded-byte or allocation quota.
+  // At depth=1, a single leaf/void element is admitted; every nested
+  // child consumes one unit. A non-positive remaining budget fails closed.
+  pub within_depth(int remaining): bool {
+    if remaining < 1 || remaining > 64 then
+      return false;
+    fi
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      if checked.within_depth(remaining - 1) == false then
+        return false;
+      fi
+    }
+    return true;
+  }
+
+  // Counts rendered occurrences (not unique object identities) within a
+  // bounded depth. A shared child referenced twice costs two nodes. This
+  // preflight writes no output; it rejects before starting eager rendering.
+  // The public admission wrapper caps depth so recursion cannot grow without
+  // bound. No node-count check can bound text payload bytes on its own.
+  pub count_with_limits(int remaining_depth, int remaining_nodes): Result<int, string> {
+    if remaining_depth < 1 then
+      return Err("HTML nesting exceeds maximum depth");
+    fi
+    if remaining_nodes < 1 then
+      return Err("HTML node count exceeds maximum");
+    fi
+    let int consumed = 1;
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      val child_count = checked.count_with_limits(remaining_depth - 1, remaining_nodes - consumed);
+      if child_count.is_err() then
+        return Err("HTML depth or node budget exceeded");
+      fi
+      consumed = consumed + child_count.unwrap();
+    }
+    return Ok(consumed);
+  }
+
+  // Count attribute descriptors per rendered occurrence, including
+  // repeated references to the same child. This is a preflight quota,
+  // not an encoded-byte quota: attributes may contain huge values.
+  pub count_attrs_with_limits(int remaining_depth, int remaining_attrs): Result<int, string> {
+    if remaining_depth < 1 then
+      return Err("HTML nesting exceeds maximum depth");
+    fi
+    if remaining_attrs < 0 then
+      return Err("HTML attribute budget exceeded");
+    fi
+    let int consumed = 0;
+    for (val attr of self.attributes) {
+      val checked = attr as SafeAttr;
+      consumed = consumed + 1;
+      if consumed > remaining_attrs then
+        return Err("HTML attribute budget exceeded");
+      fi
+    }
+    for (val child of self.children) {
+      val checked = child as HtmlNode;
+      val child_count = checked.count_attrs_with_limits(remaining_depth - 1, remaining_attrs - consumed);
+      if child_count.is_err() then
+        return Err("HTML depth or attribute budget exceeded");
+      fi
+      consumed = consumed + child_count.unwrap();
+    }
+    return Ok(consumed);
+  }
+
   pub render(): string {
     if self.kind == "text" then
       return markup.escape_html_data(self.text_value);
@@ -216,6 +299,47 @@ define module safe_html as
   pub fnc render(HtmlNode node): string {
     val checked = node as HtmlNode;
     return checked.render();
+  }
+
+  // Validate depth before serializing any output. Do not change this to
+  // truncation or to a recursive renderer that emits partial success.
+  pub fnc render_with_depth_limit(HtmlNode node, int max_depth): Result<string, string> {
+    // Compatibility API: run the same capped preflight as the new budgeted
+    // entrypoint. Never let a huge caller-supplied depth bypass stack limits.
+    return render_with_limits(node, max_depth, 4096);
+  }
+
+  // Constrain preflight traversal with hard upper ceilings. These are
+  // *admission limits*, NOT output-byte or allocation limits. A single huge
+  // text node can still allocate unbounded rendered output.
+  pub fnc render_with_limits(HtmlNode node, int max_depth, int max_nodes): Result<string, string> {
+    // Legacy budgeted entrypoint additionally caps attribute descriptors.
+    return render_with_resource_limits(node, max_depth, max_nodes, 4096);
+  }
+
+  // Structural preflight: all three quotas are checked before serialization.
+  // A disabled boolean attribute still consumes one descriptor, which makes
+  // accounting conservative and independent of its serialized text.
+  pub fnc render_with_resource_limits(HtmlNode node, int max_depth, int max_nodes, int max_attrs): Result<string, string> {
+    val checked = node as HtmlNode;
+    if max_depth < 1 || max_depth > 64 then
+      return Err("HTML maximum depth must be between 1 and 64");
+    fi
+    if max_nodes < 1 || max_nodes > 4096 then
+      return Err("HTML maximum nodes must be between 1 and 4096");
+    fi
+    if max_attrs < 0 || max_attrs > 4096 then
+      return Err("HTML maximum attributes must be between 0 and 4096");
+    fi
+    val counted = checked.count_with_limits(max_depth, max_nodes);
+    if counted.is_err() then
+      return Err("HTML depth or node budget exceeded");
+    fi
+    val counted_attrs = checked.count_attrs_with_limits(max_depth, max_attrs);
+    if counted_attrs.is_err() then
+      return Err("HTML depth or attribute budget exceeded");
+    fi
+    return Ok(checked.render());
   }
 
   // Reviewed bridge: only the closed SafeAttr/HtmlNode constructors can

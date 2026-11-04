@@ -1,0 +1,10 @@
+import module safe_html from '../../src/safe_html';
+import class HtmlNode from '../../src/safe_html';
+define class SafeAttr as
+  pub render(): string { return "foreign-attr"; }
+end
+pub routine main(): void {
+  val forged = HtmlNode.div([new SafeAttr()], []);
+  stdio.println(safe_html.render(forged));
+  return;
+}
