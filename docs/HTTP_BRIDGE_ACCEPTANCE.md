@@ -18,6 +18,16 @@ combined build is executed.
   It HTML-escapes an authorized actor snapshot and CSRF token field, sets
   a typed local `/counter/increment` action, and uses an ordinary
   `method="post"` form as the no-JavaScript fallback.
+- The counter form's standalone fragment **and** its full page both mark
+  CSRF-bearing markup with `hx-history="false"`. A fragment can be swapped
+  into a previously unprotected page; guarding only the page wrapper is not
+  sufficient. This controls htmx browser history snapshots, **not** HTTP
+  network caching or form-token validation.
+- The counter view/response guest fixtures assert boolean invariants instead
+  of printing rendered CSRF-bearing HTML to test logs. Fixture oracles pin
+  escaping, absence of unescaped markup, history embargo for standalone
+  fragments, full-page restoration and HEAD suppression. A compiler-backed
+  guest run is still required; a source-only model is not a passing guest test.
 - `src/counter_response.ores` composes view and strict header handling
   for **GET or HEAD only** after routing and authorization. It must never
   be used as a POST handler. The POST mutation must be implemented in
