@@ -183,3 +183,40 @@ fn symlink_workdir_rejected_without_deleting_redirected_launcher() {
     assert_eq!(fs::read_to_string(retained.join("ores")).unwrap(), original);
     assert!(!f.root.join("args").exists(), "no build command may run");
 }
+
+
+#[test]
+fn malformed_revision_pin_fails_before_build_and_clears_stale_launcher() {
+    let f = Fixture::new();
+    fs::write(f.root.join("compiler.lock"), "not-a-commit\n").unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists());
+    assert_eq!(fs::read_to_string(f.compiler.join("pom.xml")).unwrap(), "<project/>");
+}
+
+#[test]
+fn wrong_but_well_formed_tree_pin_preserves_original_checkout() {
+    let f = Fixture::new();
+    fs::write(f.root.join("compiler-tree.txt"), format!("{}\n", "0".repeat(40))).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("tree does not match"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists());
+    assert_eq!(fs::read_to_string(f.compiler.join("pom.xml")).unwrap(), "<project/>");
+}
+
+#[test]
+fn untracked_compiler_file_rejected_without_destructive_cleanup() {
+    let f = Fixture::new();
+    let extra = f.compiler.join("local-untracked-source.ores");
+    fs::write(&extra, "owner local change\n").unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("checkout must be clean"));
+    assert_eq!(fs::read_to_string(extra).unwrap(), "owner local change\n");
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists());
+}
