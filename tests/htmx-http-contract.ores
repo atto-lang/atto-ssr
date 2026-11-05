@@ -78,5 +78,25 @@ pub routine main(): void {
     false, false, "",
     false, full_page, fragment
   ).is_err());
+  // History restoration wins even when HX-Request is absent, including
+  // HEAD where only the wire body is suppressed (not the representation).
+  val restored_without_hx = htmx_http.reply_checked(
+    false, false, "",
+    true, false, "true",
+    false, full_page, fragment
+  ).unwrap();
+  stdio.println(restored_without_hx.body == direct.body);
+  val head_restored = htmx_http.reply_checked(
+    false, false, "",
+    true, false, "true",
+    true, full_page, fragment
+  ).unwrap();
+  stdio.println(head_restored.body == "");
+  stdio.println(head_restored.representation_body == direct.body);
+  stdio.println(head_restored.vary == direct.vary);
+  // An absent field with a duplicate marker or unnormalized OWS is invalid.
+  stdio.println(htmx_http.parse_flag(false, true, "").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, " false").is_err());
+  stdio.println(htmx_http.parse_flag(true, false, "false ").is_err());
   return;
 }
