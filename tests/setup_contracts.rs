@@ -254,3 +254,28 @@ fn newer_empty_commit_with_same_tree_cannot_steal_reviewed_revision() {
     assert!(!f.launcher.exists());
     assert!(!f.root.join("args").exists());
 }
+
+
+#[test]
+fn split_revision_pin_cannot_be_normalized_into_valid_sha() {
+    let f = Fixture::new();
+    let sha = f.git(&["rev-parse", "HEAD"]);
+    fs::write(f.root.join("compiler.lock"), format!("{}\n{}\n", &sha[..20], &sha[20..])).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("full Git SHAs"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not start for split commit pins");
+}
+
+#[test]
+fn split_tree_pin_cannot_be_normalized_into_valid_sha() {
+    let f = Fixture::new();
+    let tree = f.git(&["rev-parse", "HEAD^{tree}"]);
+    fs::write(f.root.join("compiler-tree.txt"), format!("{} {}\n", &tree[..20], &tree[20..])).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("full Git SHAs"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not start for split tree pins");
+}
