@@ -14,9 +14,20 @@ if [[ "$(cd "$root/.work" && pwd -P)" != "$root/.work" ]]; then
 fi
 # A failed build in a valid owned work directory must not leave an old launcher.
 rm -f "$root/.work/ores"
-revision="$(tr -d '[:space:]' < "$root/compiler.lock")"
-expected_tree="$(tr -d '[:space:]' < "$root/compiler-tree.txt")"
-if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || ! "$expected_tree" =~ ^[0-9a-f]{40}$ ]]; then
+# A SHA pin is an exact file: 40 lowercase hex bytes, optionally one LF.
+# Do not strip whitespace: embedded whitespace, NULs or multiple newlines
+# must never be normalized into a different reviewed identity.
+read_exact_sha_pin() {
+  local value
+  value="$(cat "$1")" || return 1
+  [[ "$value" =~ ^[0-9a-f]{40}$ ]] || return 1
+  if ! cmp -s "$1" <(printf '%s' "$value") && ! cmp -s "$1" <(printf '%s\n' "$value"); then
+    return 1
+  fi
+  printf '%s' "$value"
+}
+if ! revision="$(read_exact_sha_pin "$root/compiler.lock")" ||
+   ! expected_tree="$(read_exact_sha_pin "$root/compiler-tree.txt")"; then
   echo "compiler revision and tree must be full Git SHAs" >&2
   exit 65
 fi
