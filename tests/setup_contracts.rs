@@ -197,6 +197,30 @@ fn malformed_revision_pin_fails_before_build_and_clears_stale_launcher() {
 }
 
 #[test]
+fn pin_files_reject_whitespace_normalization_and_nul() {
+    for tree_pin in [false, true] {
+        for variant in 0..4 {
+            let f = Fixture::new();
+            let pin_name = if tree_pin { "compiler-tree.txt" } else { "compiler.lock" };
+            let original = fs::read_to_string(f.root.join(pin_name)).unwrap();
+            let sha = original.trim();
+            let malformed: Vec<u8> = match variant {
+                0 => format!("{} {}\\n", &sha[..20], &sha[20..]).into_bytes(),
+                1 => format!("{sha}\\n\\n").into_bytes(),
+                2 => format!("{sha}\\r\\n").into_bytes(),
+                _ => { let mut bytes = sha.as_bytes().to_vec(); bytes.push(0); bytes },
+            };
+            fs::write(f.root.join(pin_name), malformed).unwrap();
+            let result = f.run_setup(false);
+            assert!(!result.status.success(), "malformed {pin_name} variant {variant}");
+            assert!(String::from_utf8_lossy(&result.stderr).contains("full Git SHAs"));
+            assert!(!f.launcher.exists());
+            assert!(!f.root.join("args").exists(), "Maven must not execute");
+        }
+    }
+}
+
+#[test]
 fn wrong_but_well_formed_tree_pin_preserves_original_checkout() {
     let f = Fixture::new();
     fs::write(f.root.join("compiler-tree.txt"), format!("{}\n", "0".repeat(40))).unwrap();
