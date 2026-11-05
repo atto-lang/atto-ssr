@@ -34,6 +34,12 @@ if [[ "$(git -C "$source_dir" rev-parse --show-toplevel)" != "$(cd "$source_dir"
   echo "compiler path must be its own Git checkout" >&2
   exit 65
 fi
+# Tree identity alone is insufficient: two different Git commits can share
+# the exact same tree while carrying different provenance/review identities.
+if [[ "$(git -C "$source_dir" rev-parse HEAD)" != "$revision" ]]; then
+  echo "compiler HEAD does not match compiler.lock; preserving checkout" >&2
+  exit 65
+fi
 if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; then
   echo "compiler source tree does not match compiler-tree.txt; preserving checkout" >&2
   exit 65
