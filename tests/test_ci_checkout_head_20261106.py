@@ -154,17 +154,17 @@ class ExactSourceCheckoutGate(unittest.TestCase):
     def test_git_clean_filter_cannot_launder_or_execute_when_auditing(self):
         # Git status runs clean filters, which can both hide modified bytes
         # and execute a command supplied by repository-local Git config.
-        (self.root / ".gitattributes").write_text("source.atto filter=scrub\\n", encoding="utf-8")
+        (self.root / ".gitattributes").write_text("source.atto filter=scrub\n", encoding="utf-8")
         self.git("add", ".gitattributes")
         self.git("commit", "-qm", "tracked filter attribute")
         self.head = self.git("rev-parse", "HEAD").stdout.strip()
         marker = Path(self.temporary.name) / "filter-invoked"
         cleaner = Path(self.temporary.name) / "cleaner.sh"
-        cleaner.write_text("#!/bin/sh\\nprintf touched > " + shlex.quote(str(marker)) +
-                           "\\nsed s/9/1/g\\n", encoding="utf-8")
+        cleaner.write_text("#!/bin/sh\nprintf touched > " + shlex.quote(str(marker)) +
+                           "\nsed s/9/1/g\n", encoding="utf-8")
         cleaner.chmod(0o755)
         self.git("config", "filter.scrub.clean", shlex.quote(str(cleaner)))
-        (self.root / "source.atto").write_text("fnc main(): int { return 9; }\\n", encoding="utf-8")
+        (self.root / "source.atto").write_text("fnc main(): int { return 9; }\n", encoding="utf-8")
         # Demonstrate the false-green status and actual filter invocation.
         self.assertEqual(self.git("status", "--porcelain=v1").stdout.strip(), "")
         self.assertTrue(marker.exists())
@@ -181,7 +181,7 @@ class ExactSourceCheckoutGate(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_unusual_tracked_filename_is_hashed_without_splitting(self):
-        (self.root / "line\\nname\\t.atto").write_text("safe\\n", encoding="utf-8")
+        (self.root / "line\nname\t.atto").write_text("safe\n", encoding="utf-8")
         self.git("add", ".")
         self.git("commit", "-qm", "tracked unusual filename")
         self.head = self.git("rev-parse", "HEAD").stdout.strip()
