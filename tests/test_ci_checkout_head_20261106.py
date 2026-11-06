@@ -116,7 +116,7 @@ class ExactSourceCheckoutGate(unittest.TestCase):
 
     def test_core_filemode_false_cannot_hide_exec_bit_change(self):
         script = self.root / "run.sh"
-        script.write_text("#!/bin/sh\\necho hello\\n", encoding="utf-8")
+        script.write_text("#!/bin/sh\necho hello\n", encoding="utf-8")
         script.chmod(0o644)
         self.git("add", "run.sh")
         self.git("commit", "-qm", "tracked non-executable script")
@@ -137,7 +137,7 @@ class ExactSourceCheckoutGate(unittest.TestCase):
         self.assert_dirty_denied()
 
     def test_core_ignorecase_true_cannot_hide_case_variant_new_file(self):
-        (self.root / "SOURCE.atto").write_text("untracked attacker source\\n", encoding="utf-8")
+        (self.root / "SOURCE.atto").write_text("untracked attacker source\n", encoding="utf-8")
         self.git("config", "core.ignorecase", "true")
         self.assert_dirty_denied()
 
