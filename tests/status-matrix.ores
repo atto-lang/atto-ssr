@@ -1,0 +1,54 @@
+import module markup from '../src/markup';
+import module response from '../src/response';
+
+// Guest fixture authored against draft #32; no HTTP wire or guest CI claimed.
+pub routine main(): void {
+  val body = markup.text("matrix<&>");
+  stdio.stdout.write("99:");
+  stdio.println(response.with_status(99, body).is_err());
+  stdio.stdout.write("100:");
+  stdio.println(response.with_status(100, body).is_err());
+  stdio.stdout.write("101:");
+  stdio.println(response.with_status(101, body).is_err());
+  stdio.stdout.write("199:");
+  stdio.println(response.with_status(199, body).is_err());
+  stdio.stdout.write("200:");
+  stdio.println(response.with_status(200, body).is_ok());
+  stdio.stdout.write("201:");
+  stdio.println(response.with_status(201, body).is_ok());
+  stdio.stdout.write("203:");
+  stdio.println(response.with_status(203, body).is_ok());
+  stdio.stdout.write("204:");
+  stdio.println(response.with_status(204, body).is_err());
+  stdio.stdout.write("205:");
+  stdio.println(response.with_status(205, body).is_err());
+  stdio.stdout.write("206:");
+  stdio.println(response.with_status(206, body).is_ok());
+  stdio.stdout.write("299:");
+  stdio.println(response.with_status(299, body).is_ok());
+  stdio.stdout.write("300:");
+  stdio.println(response.with_status(300, body).is_ok());
+  stdio.stdout.write("304:");
+  stdio.println(response.with_status(304, body).is_err());
+  stdio.stdout.write("305:");
+  stdio.println(response.with_status(305, body).is_ok());
+  stdio.stdout.write("399:");
+  stdio.println(response.with_status(399, body).is_ok());
+  stdio.stdout.write("400:");
+  stdio.println(response.with_status(400, body).is_ok());
+  stdio.stdout.write("418:");
+  stdio.println(response.with_status(418, body).is_ok());
+  stdio.stdout.write("499:");
+  stdio.println(response.with_status(499, body).is_ok());
+  stdio.stdout.write("500:");
+  stdio.println(response.with_status(500, body).is_ok());
+  stdio.stdout.write("599:");
+  stdio.println(response.with_status(599, body).is_ok());
+  stdio.stdout.write("600:");
+  stdio.println(response.with_status(600, body).is_err());
+  val accepted = response.with_status(206, body).unwrap();
+  stdio.println(accepted.status);
+  stdio.println(accepted.content_type);
+  stdio.println(accepted.body);
+  return;
+}
