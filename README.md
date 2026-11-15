@@ -37,3 +37,9 @@ This README describes the project's intended role. It does not imply that the li
 AttoLang is the public name; preserve existing Oreslang/.ores compatibility and use canonical .atto for new portable library source. This README defines scope, not feature readiness.
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
+
+## Restricted HTML escaping reference (host-only)
+
+`reference/safe_html.py` now implements bounded HTML text escaping and a tightly allowlisted quoted-attribute emitter. It rejects control characters, lone surrogate code points, URL/event/style attributes and unbounded node lists. Run `python3 -m unittest discover -s tests -v` for injection-shaped and boundary checks.
+
+**Security scope:** These functions are safe only for ordinary HTML text and the specific allowed attributes, **not** JavaScript, CSS, HTML templates, URL schemes, inline scripts, raw HTML fragments or CSP decisions. This is not AttoLang SSR runtime implementation or proof of frontend sanitization across browsers. Production SSR must use context-aware rendering and browser E2E security tests.
