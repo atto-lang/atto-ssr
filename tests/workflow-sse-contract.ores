@@ -1,0 +1,20 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+import module htmx from '../src/htmx';
+
+// Host renders a snapshot first; SSE swaps later project the same durable actor state.
+// No client-owned workflow state and no executable JS in the component.
+pub routine main(): void {
+  val node = html.div(
+    html.attrs_join([
+      html.id("workflow-editor"),
+      htmx.sse_extension(),
+      htmx.sse_connect_trusted("/workflows/run-7/events"),
+      htmx.sse_swap_trusted("editor"),
+      htmx.sse_close_trusted("done")
+    ]),
+    html.p(html.attrs_empty(), markup.text("Editing <private>"))
+  );
+  stdio.println(markup.render(node));
+  return;
+}

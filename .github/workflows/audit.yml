@@ -1,0 +1,57 @@
+name: native-ssr-contracts
+on:
+  push:
+    branches: [main, "feat/**", "hardening/**"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Check every shell script
+        run: |
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
+      - run: bash scripts/audit.sh
+  render-contracts:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Read compiler snapshot revision
+        id: compiler
+        shell: bash
+        run: |
+          revision="$(tr -d '[:space:]' < compiler.lock)"
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          printf 'ref=compiler-mirror/%s\n' "$revision" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.compiler.outputs.ref }}
+          path: .work/compiler
+          persist-credentials: false
+      - name: Install matching GraalVM
+        run: |
+          archive="$RUNNER_TEMP/graalvm.tar.gz"
+          curl --fail --location --retry 3 https://github.com/graalvm/graalvm-ce-builds/releases/download/graal-25.3.4.1/graalvm-community-jdk-25i3-25.0.4.1_linux-x64_bin.tar.gz -o "$archive"
+          echo "b2bc38d0c4141426eb44d0eefa3cc172c96faf92727d703b61541699128b6fc7  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/graalvm"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/graalvm" --strip-components=1
+          echo "JAVA_HOME=$RUNNER_TEMP/graalvm" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/graalvm/bin" >> "$GITHUB_PATH"
+      - name: Verify and build pinned compiler
+        run: bash scripts/setup.sh
+      - name: Check examples, render fixtures, and rejected wrappers
+        run: bash scripts/test.sh
