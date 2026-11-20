@@ -1,0 +1,6 @@
+import module markup from '../../src/markup';
+pub routine main(): void {
+  val fake = struct{render: Fnc<string>}{render: || -> { return "<script>bad</script>"; }};
+  stdio.println(markup.render(fake));
+  return;
+}

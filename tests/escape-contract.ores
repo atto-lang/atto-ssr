@@ -1,0 +1,31 @@
+import module markup from '../src/markup';
+import module html from '../src/html';
+
+pub routine main(): void {
+  stdio.stdout.write("[");
+  stdio.stdout.write(markup.render(markup.text("")));
+  stdio.println("]");
+  stdio.println(markup.render(markup.text("&<>\"'")));
+  stdio.println(markup.render(markup.text("&lt;script&gt;&#39;&amp;")));
+  stdio.println(markup.render(markup.text("café é 😀 中文 <&>")));
+  stdio.println(markup.render(markup.text("</script><img src=x onerror=alert(1)>")));
+  stdio.println(markup.render(html.div(
+    html.attr("title", "\" autofocus onfocus='alert(1)' <>&").unwrap(),
+    markup.text("<b>data</b>")
+  )));
+  stdio.println(markup.render(html.div(
+    html.attrs_join([html.id("x\" y"), html.class_name("a&b")]),
+    markup.text("é😀")
+  )));
+  stdio.println(html.attr("onclick", "alert(1)").is_err());
+  stdio.println(html.attr("onClick", "alert(1)").is_err());
+  stdio.println(html.attr("style", "color:red").is_err());
+  stdio.println(html.attr("srcdoc", "<script>alert(1)</script>").is_err());
+  stdio.println(html.attr("href", "javascript:alert(1)").is_err());
+  stdio.println(html.attr("hx-vals", "js:alert(1)").is_err());
+  stdio.println(html.attr("title onclick", "x").is_err());
+  stdio.println(html.attr("", "x").is_err());
+  stdio.println(html.attr("TITLE", "x").is_err());
+  stdio.println(markup.render(markup.trusted_raw("<b>explicit trust</b>")));
+  return;
+}

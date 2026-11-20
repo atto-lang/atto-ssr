@@ -1,0 +1,58 @@
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "ores.std/testing";
+import fnc expect_true, expect_false, expect_equal_int, expect_equal_string, run_suite, require_success, fail from "ores.std/testing";
+import module html from "../src/html";
+import module markup from "../src/markup";
+fnc rejects_dynamic_href_attribute(): TestOutcome {
+  return expect_true(html.attr("href", "javascript:alert(1)").is_err(),
+    "dynamic URL attributes require a dedicated context policy");
+}
+fnc title_attribute_escapes_markup(): TestOutcome {
+  val value = html.attr("title", "<script>");
+  if value.is_err(); then return fail("safe title attribute was rejected"); fi
+  return expect_equal_string(html.attrs_render(value.unwrap()), " title=\"&lt;script&gt;\"",
+    "inert attribute values must be HTML-escaped");
+}
+fnc dynamic_event_attribute_denied(): TestOutcome {
+  return expect_true(html.attr("onclick", "alert(1)").is_err(),
+    "untrusted event-handler attributes must fail closed");
+}
+fnc untrusted_style_attribute_is_denied(): TestOutcome {
+  return expect_true(html.attr("style", "background:url(x)").is_err(),
+    "style attributes require dedicated CSS policy");
+}
+
+fnc inert_aria_attribute_escapes_ampersand(): TestOutcome {
+  val result = html.attr("aria-label", "A&B");
+  if result.is_err(); then return fail("safe aria-label rejected"); fi
+  return expect_equal_string(html.attrs_render(result.unwrap()),
+    " aria-label=\"A&amp;B\"",
+    "HTML attribute serialization must escape ampersands");
+}
+
+fnc srcdoc_attribute_requires_dedicated_policy(): TestOutcome {
+  return expect_true(html.attr("srcdoc", "<script>run()</script>").is_err(),
+    "srcdoc is script-capable and must be rejected by inert-attribute API");
+}
+
+fnc id_attribute_escapes_angle_brackets(): TestOutcome {
+  val result = html.attr("id", "<img>");
+  if result.is_err(); then return fail("safe inert ID rejected"); fi
+  return expect_equal_string(html.attrs_render(result.unwrap()),
+    " id=\"&lt;img&gt;\"", "HTML element markup must not enter an attribute value");
+}
+
+pub routine main(): void {
+  val TestSuite suite = new TestSuite("ssr", arr[
+    new TestCase("rejects_dynamic_href_attribute", rejects_dynamic_href_attribute, false, ""),
+    new TestCase("title_attribute_escapes_markup", title_attribute_escapes_markup, false, ""),
+    new TestCase("dynamic_event_attribute_denied", dynamic_event_attribute_denied, false, ""),
+    new TestCase("untrusted_style_attribute_is_denied", untrusted_style_attribute_is_denied, false, ""),
+    new TestCase("inert_aria_attribute_escapes_ampersand", inert_aria_attribute_escapes_ampersand, false, ""),
+    new TestCase("srcdoc_attribute_requires_dedicated_policy", srcdoc_attribute_requires_dedicated_policy, false, ""),
+    new TestCase("id_attribute_escapes_angle_brackets", id_attribute_escapes_angle_brackets, false, "")
+  ]);
+  val TestOptions options = new TestOptions("", false, true);
+  val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
+  require_success(rt borrow summary);
+  return;
+}

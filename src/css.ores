@@ -1,0 +1,64 @@
+// Native CSS generation.
+//
+// Selectors/property names/property values are intentionally marked trusted.
+// Correct CSS escaping/sanitization is a separate context-sensitive problem
+// from HTML escaping and should not be hidden behind a misleading helper.
+
+pub define class Stylesheet as
+  private val string css;
+
+  private constructor(string value) {
+    self.css = value;
+  }
+
+  pub static fnc trusted_raw(string value): Stylesheet {
+    return new Stylesheet(value);
+  }
+
+  pub render(): string {
+    return self.css;
+  }
+end
+
+define module css as
+
+  pub fnc empty(): Stylesheet {
+    return Stylesheet.trusted_raw("");
+  }
+
+  pub fnc trusted_raw(string css): Stylesheet {
+    return Stylesheet.trusted_raw(css);
+  }
+
+  pub fnc declaration_trusted(string property, string value): Stylesheet {
+    return Stylesheet.trusted_raw(property + ":" + value + ";");
+  }
+
+  pub fnc declarations(Array<Stylesheet> values): Stylesheet {
+    let string rendered = "";
+
+    for (val value of values) {
+      rendered = rendered + render(value);
+    }
+
+    return Stylesheet.trusted_raw(rendered);
+  }
+
+  pub fnc rule_trusted(string selector, Stylesheet body): Stylesheet {
+    return Stylesheet.trusted_raw(selector + "{" + render(body) + "}");
+  }
+
+  pub fnc media_trusted(string query, Stylesheet body): Stylesheet {
+    return Stylesheet.trusted_raw("@media " + query + "{" + render(body) + "}");
+  }
+
+  pub fnc join(Array<Stylesheet> values): Stylesheet {
+    return declarations(values);
+  }
+
+  pub fnc render(Stylesheet value): string {
+    val checked = value as Stylesheet;
+    return checked.render();
+  }
+
+end

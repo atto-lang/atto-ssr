@@ -1,0 +1,5 @@
+import class Attrs from '../../src/html';
+pub routine main(): void {
+  val forged = new Attrs(" onclick=bad");
+  return;
+}
