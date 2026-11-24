@@ -102,5 +102,14 @@ pub routine main(): void {
   stdio.println(custom.status);
   stdio.println(custom.body);
 
+  // A generic HtmlResponse always contains an entity body. Bodyless HTTP
+  // statuses require a separate transport response, not silent HTML emission.
+  stdio.println(response.with_status(100, markup.trusted_raw("x")).is_err());
+  stdio.println(response.with_status(199, markup.trusted_raw("x")).is_err());
+  stdio.println(response.with_status(204, markup.trusted_raw("x")).is_err());
+  stdio.println(response.with_status(205, markup.trusted_raw("x")).is_err());
+  stdio.println(response.with_status(304, markup.trusted_raw("x")).is_err());
+  stdio.println(response.with_status(203, markup.trusted_raw("x")).is_ok());
+
   return;
 }
