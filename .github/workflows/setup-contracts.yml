@@ -11,6 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify exact source HEAD before running setup contracts
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash scripts/verify_ci_checkout_head.sh
+          python3 -m unittest discover -s tests -p 'test_ci_checkout_head_20261106.py' -v
       - name: Check compiler admission and failed-build launcher contracts
         run: cargo test --test setup_contracts -- --nocapture

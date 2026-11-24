@@ -220,3 +220,62 @@ fn untracked_compiler_file_rejected_without_destructive_cleanup() {
     assert!(!f.launcher.exists());
     assert!(!f.root.join("args").exists());
 }
+
+
+#[test]
+fn forged_well_formed_revision_with_identical_tree_is_rejected() {
+    let f = Fixture::new();
+    let tree = f.git(&["rev-parse", "HEAD^{tree}"]);
+    fs::write(f.root.join("compiler.lock"), format!("{}\n", "0".repeat(40))).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("compiler HEAD does not match compiler.lock"));
+    assert_eq!(f.git(&["rev-parse", "HEAD^{tree}"]), tree);
+    assert_eq!(fs::read_to_string(f.compiler.join("pom.xml")).unwrap(), "<project/>");
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "no Maven invocation allowed");
+}
+
+#[test]
+fn newer_empty_commit_with_same_tree_cannot_steal_reviewed_revision() {
+    let f = Fixture::new();
+    let old_head = f.git(&["rev-parse", "HEAD"]);
+    let old_tree = f.git(&["rev-parse", "HEAD^{tree}"]);
+    f.git(&[
+        "-c", "user.name=Fixture",
+        "-c", "user.email=fixture@example.invalid",
+        "commit", "--allow-empty", "-qm", "same tree, different commit",
+    ]);
+    assert_ne!(f.git(&["rev-parse", "HEAD"]), old_head);
+    assert_eq!(f.git(&["rev-parse", "HEAD^{tree}"]), old_tree);
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("compiler HEAD does not match compiler.lock"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists());
+}
+
+
+#[test]
+fn split_revision_pin_cannot_be_normalized_into_valid_sha() {
+    let f = Fixture::new();
+    let sha = f.git(&["rev-parse", "HEAD"]);
+    fs::write(f.root.join("compiler.lock"), format!("{}\n{}\n", &sha[..20], &sha[20..])).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("full Git SHAs"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not start for split commit pins");
+}
+
+#[test]
+fn split_tree_pin_cannot_be_normalized_into_valid_sha() {
+    let f = Fixture::new();
+    let tree = f.git(&["rev-parse", "HEAD^{tree}"]);
+    fs::write(f.root.join("compiler-tree.txt"), format!("{} {}\n", &tree[..20], &tree[20..])).unwrap();
+    let result = f.run_setup(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("full Git SHAs"));
+    assert!(!f.launcher.exists());
+    assert!(!f.root.join("args").exists(), "Maven must not start for split tree pins");
+}

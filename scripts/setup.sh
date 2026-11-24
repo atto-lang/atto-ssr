@@ -14,8 +14,10 @@ if [[ "$(cd "$root/.work" && pwd -P)" != "$root/.work" ]]; then
 fi
 # A failed build in a valid owned work directory must not leave an old launcher.
 rm -f "$root/.work/ores"
-revision="$(tr -d '[:space:]' < "$root/compiler.lock")"
-expected_tree="$(tr -d '[:space:]' < "$root/compiler-tree.txt")"
+# Preserve all internal whitespace so split/multi-line fingerprints fail
+# admission rather than silently becoming a different valid 40-hex identity.
+revision="$(cat "$root/compiler.lock")"
+expected_tree="$(cat "$root/compiler-tree.txt")"
 if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || ! "$expected_tree" =~ ^[0-9a-f]{40}$ ]]; then
   echo "compiler revision and tree must be full Git SHAs" >&2
   exit 65
@@ -32,6 +34,12 @@ if [[ ! -e "$source_dir" ]]; then
 fi
 if [[ "$(git -C "$source_dir" rev-parse --show-toplevel)" != "$(cd "$source_dir" && pwd -P)" ]]; then
   echo "compiler path must be its own Git checkout" >&2
+  exit 65
+fi
+# Tree identity alone is insufficient: two different Git commits can share
+# the exact same tree while carrying different provenance/review identities.
+if [[ "$(git -C "$source_dir" rev-parse HEAD)" != "$revision" ]]; then
+  echo "compiler HEAD does not match compiler.lock; preserving checkout" >&2
   exit 65
 fi
 if [[ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" != "$expected_tree" ]]; then
