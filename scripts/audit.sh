@@ -42,7 +42,7 @@ if grep -R -nE --include='*.ores' 'obj[[:space:]]*\{[[:space:]]*html[[:space:]]*
   fail "application code must not forge the provisional Markup representation"
 fi
 
-if grep -nE '\.html([^A-Za-z0-9_]|$)' examples/*.ores tests/*.ores 2>/dev/null; then
+if grep -RnE --include='*.ores' --include='*.atto' --exclude-dir=reject '\.html([^A-Za-z0-9_]|$)' examples tests; then
   fail "application code must render Markup through the public API"
 fi
 
